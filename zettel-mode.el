@@ -52,7 +52,6 @@ CMD is a string representing a neuron rib command."
   (ivy-read "Select Zettelkasten: "
             (neuron-zettelkasten-list)
             :predicate  (lambda (path) (not (string-prefix-p "." path)))
-            :require-match t
             :action (lambda (path) (setq neuron-zettelkasten-name (f-base path)))
             :caller 'neuron-select-zettelkasten))
 
