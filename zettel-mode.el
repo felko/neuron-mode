@@ -86,8 +86,8 @@ CMD is a string representing a neuron rib command."
 (defun neuron-insert-zettel-link ()
   "Insert a markdown hypertext link to another zettel."
   (interactive)
-  (let ((zettel-id (neuron-select-zettel)))
-    (insert (format "[%s](z:/)" zettel-id))))
+  (let ((id (neuron-select-zettel)))
+    (insert (format "[%s](z:/)" id))))
 
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
@@ -101,7 +101,7 @@ CMD is a string representing a neuron rib command."
      (zettel-mode)
      (forward-line 1)
      (end-of-line)
-     (message (concat "Created " zettel-path)))))
+     (message (concat "Created " path)))))
 
 (defun neuron-edit-zettel-from-path (path &optional before after)
   "Open a neuron zettel from PATH.
