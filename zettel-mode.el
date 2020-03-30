@@ -135,8 +135,6 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
     (message "%S" (list type id)))
   )
 
-;; TODO: ask srid why he chose [id](z:/) syntax instead of [link display](z:/id)
-
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
@@ -191,11 +189,12 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
   (define-key zettel-mode-map (kbd "C-c C-r")   #'neuron-rib-open-current-zettel)
   (define-key zettel-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
 
+;;;###autoload
 (define-derived-mode zettel-mode markdown-mode "Zettel"
   "A major mode to edit Zettelkasten notes with neuron."
   (use-local-map zettel-mode-map))
 ; (add-to-list 'auto-mode-alist '("\\.\\'" . packet-mode))
 
-(provide 'zettel-neuron)
+(provide 'zettel-mode)
 
 ;;; zettel-mode.el ends here
