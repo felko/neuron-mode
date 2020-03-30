@@ -35,12 +35,10 @@ environment variable that you should set somewhere to e.g. `~/.zettel`
 
 ## doom-emacs configuration
 
-doom-emacs+evil users can use this configuration to work with `zettel-mode`
-using evil bindings:
+doom-emacs users can use this configuration to work with `zettel-mode`:
 
 ```elisp
-(map! :after zettel-neuron
-      :leader
+(map! :leader
       (:prefix ("z" . "zettel")
         "z"  #'neuron-new-zettel
         "e"  #'neuron-edit-zettel
@@ -54,8 +52,7 @@ using evil bindings:
         )
       )
 
-(map! :after zettel-mode
-      :map zettel-mode-map
+(map! :map zettel-mode-map
       :localleader
       "o"      #'neuron-follow-thing-at-point
       (:prefix ("z" . "zettel")
