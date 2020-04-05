@@ -23,24 +23,16 @@
 (require 'counsel)
 (require 'json)
 
-(defconst neuron-dir (getenv "ZETTELPATH"))
+(defvar neuron-zettelkasten nil)
 
-(defvar neuron-zettelkasten-name "test")
-
-(defvar neuron-rib-has-running-instance nil)
-
-(defun neuron-zettelkasten-list ()
-  "Return the list of zettelkastens."
-  (mapcar (lambda (path) (f-relative path neuron-dir)) (f-directories neuron-dir)))
-
-(defun neuron-zettelkasten-path ()
-  "Return the path of the zettelkasten."
-  (f-join "/" neuron-dir neuron-zettelkasten-name))
+;; (defun neuron-zettelkasten-list ()
+;;   "Return the list of zettelkastens."
+;;   (mapcar (lambda (path) (f-relative path neuron-dir)) (f-directories neuron-dir)))
 
 (defun neuron--command (cmd)
   "Run a neuron command in the current zettekasten.
 CMD should be a string representing the command"
-  (shell-command-to-string (concat "neuron " (neuron-zettelkasten-path) " " cmd)))
+  (shell-command-to-string (concat "neuron " neuron-zettelkasten " " cmd)))
 
 (defun neuron--json-extract-info (match)
   "Extract Zettel ID and title from MATCH, as a JSON string."
@@ -49,39 +41,35 @@ CMD should be a string representing the command"
 
 (defun neuron--query-url-command (query-url)
   "Run a neuron query from a zquery QUERY-URL."
-  (let* ((res (shell-command-to-string (concat "neuron " (neuron-zettelkasten-path) " query --uri '" query-url "'"))))
+  (let* ((res (shell-command-to-string (concat "neuron " neuron-zettelkasten " query --uri '" query-url "'"))))
     (neuron--json-extract-info res)))
 
 (defun neuron--rib-command (cmd)
   "Run a neuron command to manage the web application.
 CMD is a string representing a neuron rib command."
-  (start-process "neuron-rib" "*neuron-rib*" "neuron" (neuron-zettelkasten-path) "rib" cmd))
+  (start-process "neuron-rib" "*neuron-rib*" "neuron" neuron-zettelkasten "rib" cmd))
 
 (defun neuron-select-zettelkasten ()
   "Select the active zettelkasten."
   (interactive)
-  (ivy-read "Select Zettelkasten: "
-            (neuron-zettelkasten-list)
-            :predicate  (lambda (path) (not (string-prefix-p "." path)))
-            :action (lambda (path) (setq neuron-zettelkasten-name (f-base path)))
-            :caller 'neuron-select-zettelkasten))
+  (setq neuron-zettelkasten (counsel-read-directory-name "Select Zettelkasten: ")))
 
 (defun neuron-new-zettel ()
   "Create a new zettel."
   (interactive)
-  (let* ((zettel-path   (string-trim-right (neuron--command "new \"\"")))
-         (zettel-buffer (find-file-noselect zettel-path)))
+  (let* ((path   (string-trim-right (neuron--command "new \"\"")))
+         (buffer (find-file-noselect path)))
     (and
-     (pop-to-buffer-same-window zettel-buffer)
+     (pop-to-buffer-same-window buffer)
      (zettel-mode)
      (forward-line 1)
      (end-of-line)
-     (message (concat "Created " zettel-path)))))
+     (message (concat "Created " path)))))
 
 (defun neuron-select-zettel ()
   "Find a zettel."
   (interactive)
-  (let ((match (counsel-rg "title: " (neuron-zettelkasten-path) "--no-line-number --no-heading --sort path" "Select Zettel: ")))
+  (let ((match (counsel-rg "title: " neuron-zettelkasten "--no-line-number --no-heading --sort path" "Select Zettel: ")))
     (f-base (car (split-string match ":")))))
 
 (defun neuron--select-zettel-from-query (query-url)
@@ -97,7 +85,7 @@ CMD is a string representing a neuron rib command."
   "Edit a zettel."
   (interactive)
   (let* ((id (neuron-select-zettel))
-         (path (f-join "/" (neuron-zettelkasten-path) (concat id ".md")))
+         (path (f-join "/" neuron-zettelkasten (concat id ".md")))
          (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
@@ -137,7 +125,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
   "Open a neuron zettel from ID.
 Execute BEFORE just before popping the buffer and AFTER just after enabling `zettel-mode'."
   (neuron--edit-zettel-from-path
-   (f-join "/" (neuron-zettelkasten-path) (format "%s.md" id))
+   (f-join "/" neuron-zettelkasten (format "%s.md" id))
    before
    after))
 
@@ -158,18 +146,12 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
-  (if neuron-rib-has-running-instance
-      (message "A rib instance is already running")
-    (and
-     (neuron--rib-command "serve")
-     (setq neuron-rib-has-running-instance t)
-     (message "Started web application on localhost:8080"))))
+  (neuron--rib-command "serve")
+  (message "Started web application on localhost:8080"))
 
 (defun neuron-rib-open-page (page)
   "Open the web-application at page PAGE."
-  (if neuron-rib-has-running-instance
-    (browse-url (format "http://localhost:8080/%s" page))
-    (message "No rib instance detected, start one first")))
+  (browse-url (format "http://localhost:8080/%s" page)))
 
 (defun neuron-rib-open-z-index ()
   "Open the web application in the web browser at z-index."
@@ -191,11 +173,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (defun neuron-rib-kill ()
   "Stop the web application."
   (interactive)
-  (if neuron-rib-has-running-instance
-      (and
-       (kill-buffer "*neuron-rib*")
-       (setq neuron-rib-has-running-instance nil))
-    (message "No rib instance to kill")))
+  (kill-buffer "*neuron-rib*"))
 
 (defvar zettel-mode-map nil "Keymap for `zettel-mode'.")
 
