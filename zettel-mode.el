@@ -23,7 +23,8 @@
 (require 'counsel)
 (require 'json)
 
-(defvar neuron-zettelkasten nil)
+(defvar neuron-zettelkasten (expand-file-name "~/.zettle")
+  "The zettle location.")
 
 ;; (defun neuron-zettelkasten-list ()
 ;;   "Return the list of zettelkastens."
@@ -32,6 +33,7 @@
 (defun neuron--command (cmd)
   "Run a neuron command in the current zettekasten.
 CMD should be a string representing the command"
+  (make-directory neuron-zettelkasten :parents)
   (shell-command-to-string (concat "neuron " neuron-zettelkasten " " cmd)))
 
 (defun neuron--json-extract-info (match)
