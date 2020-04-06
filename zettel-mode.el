@@ -23,8 +23,8 @@
 (require 'counsel)
 (require 'json)
 
-(defvar neuron-zettelkasten (expand-file-name "~/.zettle")
-  "The zettle location.")
+(defvar neuron-zettelkasten (expand-file-name "~/.zettelkasten")
+  "The zettels folder location.")
 
 ;; (defun neuron-zettelkasten-list ()
 ;;   "Return the list of zettelkastens."

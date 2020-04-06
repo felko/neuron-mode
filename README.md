@@ -15,7 +15,7 @@ entirely sure how to manage dependencies but if you do know how here they are:
 # Setup
 
 `zettel-mode` stores your notes in a directory defined by the `ZETTELPATH`
-environment variable that you should set somewhere to e.g. `~/.zettel`
+environment variable that you should set somewhere to e.g. `~/.zettelkasten`
 
 ## Features
 
