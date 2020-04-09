@@ -23,16 +23,19 @@
 (require 'counsel)
 (require 'json)
 
-(defvar neuron-zettelkasten nil)
+(defvar neuron-zettelkasten nil
+  "The location of the current Zettelkasten.")
 
-;; (defun neuron-zettelkasten-list ()
-;;   "Return the list of zettelkastens."
-;;   (mapcar (lambda (path) (f-relative path neuron-dir)) (f-directories neuron-dir)))
+(defun neuron-get-zettelkasten ()
+  "Return the active Zettelkasten or prompts for it when no Zettelkasten is currently selected."
+  (if neuron-zettelkasten
+      neuron-zettelkasten
+    (neuron-select-zettelkasten)))
 
 (defun neuron--command (&rest args)
   "Run a neuron command in the current zettekasten.
 ARGS is the argument passed to `neuron'."
-  (let* ((cmd (mapconcat #'shell-quote-argument (cons "neuron" (cons neuron-zettelkasten args)) " "))
+  (let* ((cmd (mapconcat #'shell-quote-argument (cons "neuron" (cons (neuron-get-zettelkasten) args)) " "))
          (result (with-temp-buffer
                    (list (call-process-shell-command cmd nil t) (buffer-string))
                    ))
@@ -60,7 +63,7 @@ ARGS is the argument passed to `neuron'."
   "Run a neuron command to manage the web application.
 CMD is a string representing a neuron rib command and
 its arguments are passed from ARGS."
-  (let ((cmd (mapconcat #'shell-quote-argument (cons "neuron" (cons neuron-zettelkasten (cons "rib" (cons cmd args)))) " ")))
+  (let ((cmd (mapconcat #'shell-quote-argument (cons "neuron" (cons (neuron-get-zettelkasten) (cons "rib" (cons cmd args)))) " ")))
     (start-process-shell-command "neuron-rib" "*neuron-rib*" cmd))
     )
 
@@ -85,7 +88,7 @@ its arguments are passed from ARGS."
 (defun neuron-select-zettel ()
   "Find a zettel."
   (interactive)
-  (let ((match (counsel-rg "title: " neuron-zettelkasten "--no-line-number --no-heading --sort path" "Select Zettel: ")))
+  (let ((match (counsel-rg "title: " (neuron-get-zettelkasten) "--no-line-number --no-heading --sort path" "Select Zettel: ")))
     (f-base (car (split-string match ":")))))
 
 (defun neuron--select-zettel-from-query (query-url)
@@ -102,7 +105,7 @@ Return the ID of the selected zettel."
   "Edit a zettel."
   (interactive)
   (let* ((id (neuron-select-zettel))
-         (path (f-join "/" neuron-zettelkasten (concat id ".md")))
+         (path (f-join "/" (neuron-get-zettelkasten) (concat id ".md")))
          (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
@@ -142,7 +145,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
   "Open a neuron zettel from ID.
 Execute BEFORE just before popping the buffer and AFTER just after enabling `zettel-mode'."
   (neuron--edit-zettel-from-path
-   (f-join "/" neuron-zettelkasten (format "%s.md" id))
+   (f-join "/" (neuron-get-zettelkasten) (format "%s.md" id))
    before
    after))
 
