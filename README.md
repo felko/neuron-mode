@@ -12,11 +12,6 @@ entirely sure how to manage dependencies but if you do know how here they are:
 - [`markdown-mode`](https://github.com/jrblevin/markdown-mode)
 - [`ripgrep`](https://github.com/BurntSushi/ripgrep)
 
-# Setup
-
-`zettel-mode` stores your notes in a directory defined by the `ZETTELPATH`
-environment variable that you should set somewhere to e.g. `~/.zettel`
-
 ## Features
 
 |              Command             |    Binding    |                                       Description                                |
