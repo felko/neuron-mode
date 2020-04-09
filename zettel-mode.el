@@ -29,10 +29,22 @@
 ;;   "Return the list of zettelkastens."
 ;;   (mapcar (lambda (path) (f-relative path neuron-dir)) (f-directories neuron-dir)))
 
-(defun neuron--command (cmd)
+(defun neuron--command (&rest args)
   "Run a neuron command in the current zettekasten.
-CMD should be a string representing the command"
-  (shell-command-to-string (concat "neuron " neuron-zettelkasten " " cmd)))
+ARGS is the argument passed to `neuron'."
+  (let* ((cmd (mapconcat #'shell-quote-argument (cons "neuron" (cons neuron-zettelkasten args)) " "))
+         (result (with-temp-buffer
+                   (list (call-process-shell-command cmd nil t) (buffer-string))
+                   ))
+         (exit-code (nth 0 result))
+         (output    (nth 1 result)))
+    (if (equal exit-code 0)
+        (string-trim-right output)
+      (and (message "Command %s exited with code %d: %s" cmd exit-code output)
+           nil)
+      )
+    )
+  )
 
 (defun neuron--json-extract-info (match)
   "Extract Zettel ID and title from MATCH, as a JSON string."
@@ -41,13 +53,16 @@ CMD should be a string representing the command"
 
 (defun neuron--query-url-command (query-url)
   "Run a neuron query from a zquery QUERY-URL."
-  (let* ((res (shell-command-to-string (concat "neuron " neuron-zettelkasten " query --uri '" query-url "'"))))
+  (let* ((res (neuron--command "query" "--uri" (format "'%s'" query-url))))
     (neuron--json-extract-info res)))
 
-(defun neuron--rib-command (cmd)
+(defun neuron--rib-command (cmd &rest args)
   "Run a neuron command to manage the web application.
-CMD is a string representing a neuron rib command."
-  (start-process "neuron-rib" "*neuron-rib*" "neuron" neuron-zettelkasten "rib" cmd))
+CMD is a string representing a neuron rib command and
+its arguments are passed from ARGS."
+  (let ((cmd (mapconcat #'shell-quote-argument (cons "neuron" (cons neuron-zettelkasten (cons "rib" (cons cmd args)))) " ")))
+    (start-process-shell-command "neuron-rib" "*neuron-rib*" cmd))
+    )
 
 (defun neuron-select-zettelkasten ()
   "Select the active zettelkasten."
@@ -57,14 +72,15 @@ CMD is a string representing a neuron rib command."
 (defun neuron-new-zettel ()
   "Create a new zettel."
   (interactive)
-  (let* ((path   (string-trim-right (neuron--command "new \"\"")))
-         (buffer (find-file-noselect path)))
-    (and
-     (pop-to-buffer-same-window buffer)
-     (zettel-mode)
-     (forward-line 1)
-     (end-of-line)
-     (message (concat "Created " path)))))
+  (let ((path (neuron--command "new" "")))
+    (when path
+        (let ((buffer (find-file-noselect path)))
+          (and
+           (pop-to-buffer-same-window buffer)
+           (zettel-mode)
+           (forward-line 1)
+           (end-of-line)
+           (message (concat "Created " path)))))))
 
 (defun neuron-select-zettel ()
   "Find a zettel."
@@ -73,7 +89,8 @@ CMD is a string representing a neuron rib command."
     (f-base (car (split-string match ":")))))
 
 (defun neuron--select-zettel-from-query (query-url)
-  "Select a zettel from the match of QUERY-URL."
+  "Select a zettel from the match of QUERY-URL.
+Return the ID of the selected zettel."
   (ivy-read "Select Zettel: "
             (mapcar (lambda (z) (propertize (format "[%s] %s" (nth 0 z) (nth 1 z)) 'id (nth 0 z)))
              (neuron--query-url-command query-url))
@@ -100,9 +117,9 @@ CMD is a string representing a neuron rib command."
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
   (interactive)
-  (let* ((path   (string-trim-right (neuron--command "new \"\"")))
-         (id     (f-base (f-no-ext path)))
-         (buffer (find-file-noselect path)))
+  (when-let* ((path   (neuron--command "new" ""))
+              (id     (f-base (f-no-ext path)))
+              (buffer (find-file-noselect path)))
     (and
      (insert (format "[%s](z:/)" id))
      (pop-to-buffer-same-window buffer)
