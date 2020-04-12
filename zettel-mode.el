@@ -28,14 +28,14 @@
 
 (defun neuron-get-zettelkasten ()
   "Return the active Zettelkasten or prompts for it when no Zettelkasten is currently selected."
-  (if neuron-zettelkasten
-      neuron-zettelkasten
-    (neuron-select-zettelkasten)))
+  (f-full (if neuron-zettelkasten
+              neuron-zettelkasten
+            "~/zettelkasten")))
 
 (defun neuron--command (&rest args)
   "Run a neuron command in the current zettekasten.
 ARGS is the argument passed to `neuron'."
-  (let* ((cmd (mapconcat #'shell-quote-argument (cons "neuron" (cons (neuron-get-zettelkasten) args)) " "))
+  (let* ((cmd (mapconcat #'shell-quote-argument (concatenate 'list (list "neuron" "-d" (neuron-get-zettelkasten)) args) " "))
          (result (with-temp-buffer
                    (list (call-process-shell-command cmd nil t) (buffer-string))
                    ))
@@ -43,11 +43,8 @@ ARGS is the argument passed to `neuron'."
          (output    (nth 1 result)))
     (if (equal exit-code 0)
         (string-trim-right output)
-      (and (message "Command %s exited with code %d: %s" cmd exit-code output)
-           nil)
-      )
-    )
-  )
+      (and (message "Command `%s' exited with code %d: %s" cmd exit-code output)
+           nil))))
 
 (defun neuron--json-extract-info (match)
   "Extract Zettel ID and title from MATCH, as a JSON string."
@@ -59,13 +56,11 @@ ARGS is the argument passed to `neuron'."
   (let* ((res (neuron--command "query" "--uri" (format "'%s'" query-url))))
     (neuron--json-extract-info res)))
 
-(defun neuron--rib-command (cmd &rest args)
+(defun neuron--rib-command (&rest args)
   "Run a neuron command to manage the web application.
-CMD is a string representing a neuron rib command and
-its arguments are passed from ARGS."
-  (let ((cmd (mapconcat #'shell-quote-argument (cons "neuron" (cons (neuron-get-zettelkasten) (cons "rib" (cons cmd args)))) " ")))
-    (start-process-shell-command "neuron-rib" "*neuron-rib*" cmd))
-    )
+Pass the arguments ARGS to the rib CLI."
+  (let ((cmd (mapconcat #'shell-quote-argument (concatenate 'list (list "neuron" "-d" (neuron-get-zettelkasten) "rib") args) " ")))
+    (start-process-shell-command "neuron-rib" "*neuron-rib*" cmd)))
 
 (defun neuron-select-zettelkasten ()
   "Select the active zettelkasten."
@@ -77,13 +72,13 @@ its arguments are passed from ARGS."
   (interactive)
   (let ((path (neuron--command "new" "")))
     (when path
-        (let ((buffer (find-file-noselect path)))
-          (and
-           (pop-to-buffer-same-window buffer)
-           (zettel-mode)
-           (forward-line 1)
-           (end-of-line)
-           (message (concat "Created " path)))))))
+      (let ((buffer (find-file-noselect path)))
+        (and
+         (pop-to-buffer-same-window buffer)
+         (zettel-mode)
+         (forward-line 1)
+         (end-of-line)
+         (message (concat "Created " path)))))))
 
 (defun neuron-select-zettel ()
   "Find a zettel."
@@ -96,8 +91,8 @@ its arguments are passed from ARGS."
 Return the ID of the selected zettel."
   (ivy-read "Select Zettel: "
             (mapcar (lambda (z) (propertize (format "[%s] %s" (nth 0 z) (nth 1 z)) 'id (nth 0 z)))
-             (neuron--query-url-command query-url))
-            ; :predicate  (lambda (path) (not (string-prefix-p "." path)))
+                    (neuron--query-url-command query-url))
+                                        ; :predicate  (lambda (path) (not (string-prefix-p "." path)))
             :action (lambda (z) (neuron--edit-zettel-from-id (get-text-property 0 'id z)))
             :caller 'neuron-select-zettel-from-query))
 
@@ -166,8 +161,9 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
-  (neuron--rib-command "serve")
-  (message "Started web application on localhost:8080"))
+  (if (neuron--rib-command "-wS")
+      (message "Started web application on localhost:8080")
+    (message "Rib command failed")))
 
 (defun neuron-rib-open-page (page)
   "Open the web-application at page PAGE."
@@ -211,7 +207,6 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (define-derived-mode zettel-mode markdown-mode "Zettel"
   "A major mode to edit Zettelkasten notes with neuron."
   (use-local-map zettel-mode-map))
-; (add-to-list 'auto-mode-alist '("\\.\\'" . packet-mode))
 
 (provide 'zettel-mode)
 
