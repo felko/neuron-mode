@@ -11,6 +11,7 @@ entirely sure how to manage dependencies but if you do know how here they are:
 - [`ivy`/`counsel`](https://github.com/abo-abo/swiper)
 - [`markdown-mode`](https://github.com/jrblevin/markdown-mode)
 - [`ripgrep`](https://github.com/BurntSushi/ripgrep)
+- [`f.el`](https://github.com/rejeep/f.el)
 
 ## Features
 
