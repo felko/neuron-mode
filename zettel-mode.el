@@ -48,8 +48,8 @@ ARGS is the argument passed to `neuron'."
 
 (defun neuron--json-extract-info (match)
   "Extract Zettel ID and title from MATCH, as a JSON string."
-  (let ((lst (json-read-from-string match)))
-    (mapcar (lambda (obj) (list (map-elt obj 'id) (map-elt obj 'title))) lst)))
+  (let ((zettels (map-elt (json-read-from-string match) 'zettels)))
+    (mapcar (lambda (obj) (list (map-elt obj 'id) (map-elt obj 'title))) zettels)))
 
 (defun neuron--query-url-command (query-url)
   "Run a neuron query from a zquery QUERY-URL."
@@ -144,6 +144,24 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
    before
    after))
 
+(defun neuron--get-current-zettel-id ()
+  "Extract the zettel ID of the current file."
+  (f-base (buffer-name)))
+
+(defun neuron--open-zettel-from-id (id)
+  "Open the generated HTML file from the zettel ID."
+  (let* ((path (f-join (neuron-get-zettelkasten) ".neuron" "output" (format "%s.html" id)))
+         (url (format "file://%s" path)))
+    (browse-url url)))
+
+(defun neuron-open-zettel ()
+  "Select a zettel and open the corresponding generated HTML file in the browser."
+  (neuron--open-zettel-from-id (neuron-select-zettel)))
+
+(defun neuron-open-current-zettel ()
+  "Open the current zettel's HTML file in the browser"
+  (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
+
 (defun neuron-follow-thing-at-point ()
   "Open the zettel link at point."
   (interactive)
@@ -196,7 +214,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (progn
   (setq zettel-mode-map (make-sparse-keymap))
 
-  (define-key zettel-mode-map (kbd "C-c C-z")   #'neuron-new-zettel)
+  (define-key zettel-mode-map (kbd "C-c z n")   #'neuron-new-zettel)
   (define-key zettel-mode-map (kbd "C-c C-e")   #'neuron-edit-zettel)
   (define-key zettel-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
   (define-key zettel-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
