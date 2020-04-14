@@ -65,6 +65,10 @@ returned as a string."
   "Run an asynchronous neuron process spawned by the rib command with arguments ARGS."
   (start-process-shell-command "rib" "*rib*" (apply #'neuron--make-command "rib" args)))
 
+(defun neuron--run-rib-compile (&rest args)
+  "Run an synchronous neuron command spawned by the rib command with arguments ARGS."
+  (compile (apply #'neuron--make-command "rib" args)))
+
 (defun neuron-select-zettelkasten ()
   "Select the active zettelkasten."
   (interactive)
@@ -165,6 +169,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 
 (defun neuron-open-current-zettel ()
   "Open the current zettel's HTML file in the browser."
+  (interactive)
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
 (defun neuron-follow-thing-at-point ()
@@ -194,6 +199,13 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
   (interactive)
   (if (neuron--run-rib-process "-wS")
       (message "Started web application on localhost:8080")
+    (message "Rib command failed")))
+
+(defun neuron-rib-generate ()
+  "Do an one-off generation of the web interface of the zettelkasten."
+  (interactive)
+  (if (neuron--run-rib-compile)
+      (message "Generated HTML files")
     (message "Rib command failed")))
 
 (defun neuron-rib-open-page (page)
