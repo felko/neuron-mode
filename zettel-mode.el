@@ -71,7 +71,7 @@ returned as a string."
   (setq neuron-zettelkasten (counsel-read-directory-name "Select Zettelkasten: ")))
 
 (defun neuron-new-zettel ()
-  "Create a new zettel."
+  "Create a new zettel in the current zettelkasten."
   (interactive)
   (when-let* ((path (neuron--run-command "new" "''"))
               (buffer (find-file-noselect path)))
@@ -83,7 +83,7 @@ returned as a string."
      (message (concat "Created " path)))))
 
 (defun neuron-select-zettel ()
-  "Find a zettel."
+  "Find a zettel in the current zettelkasten and return its ID."
   (interactive)
   (let ((match (counsel-rg "title: " neuron-zettelkasten "--no-line-number --no-heading --sort path" "Select Zettel: ")))
     (f-base (car (split-string match ":")))))
@@ -99,7 +99,7 @@ Return the ID of the selected zettel."
             :caller 'neuron-select-zettel-from-query))
 
 (defun neuron-edit-zettel ()
-  "Edit a zettel."
+  "Select and edit a zettel from the currently active zettelkasten."
   (interactive)
   (let* ((id (neuron-select-zettel))
          (path (f-join "/" neuron-zettelkasten (concat id ".md")))
