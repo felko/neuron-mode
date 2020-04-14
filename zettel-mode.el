@@ -73,7 +73,7 @@ returned as a string."
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
   (interactive)
-  (when-let* ((path (neuron--run-command "new" "''"))
+  (when-let* ((path (neuron--run-command "new" ""))
               (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
