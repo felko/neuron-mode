@@ -170,6 +170,14 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (defun neuron-follow-thing-at-point ()
   "Open the zettel link at point."
   (interactive)
+  ;; short links (from the `thing-at-point' demo)
+  (if (thing-at-point-looking-at
+         (rx (+ alphanumeric))
+         ;; limit to current line
+         (max (- (point) (line-beginning-position))
+              (- (line-end-position) (point))))
+      (neuron--edit-zettel-from-id (match-string 0))
+  ;; markdown links
   (let* ((link   (markdown-link-at-pos (point)))
          (id     (nth 2 link))
          (url    (nth 3 link))
@@ -179,7 +187,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
       ("z"        (neuron--edit-zettel-from-id id))
       ("zquery"   (neuron--select-zettel-from-query url))
       ("zcfquery" (neuron--select-zettel-from-query url))
-      (_          (markdown-follow-thing-at-point link)))))
+      (_          (markdown-follow-thing-at-point link))))))
 
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
