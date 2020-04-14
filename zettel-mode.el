@@ -165,6 +165,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 
 (defun neuron-open-current-zettel ()
   "Open the current zettel's HTML file in the browser."
+  (interactive)
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
 (defun neuron-follow-thing-at-point ()
