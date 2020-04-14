@@ -23,27 +23,33 @@
 (require 'counsel)
 (require 'json)
 
-(defvar neuron-zettelkasten nil
-  "The location of the current Zettelkasten.")
+(defcustom neuron-default-zettelkasten (expand-file-name "~/zettelkasten")
+  "The location of the default Zettelkasten directory."
+  :group 'neuron
+  :type 'string)
 
-(defun neuron-get-zettelkasten ()
-  "Return the active Zettelkasten or prompts for it when no Zettelkasten is currently selected."
-  (f-full (if neuron-zettelkasten
-              neuron-zettelkasten
-            "~/zettelkasten")))
+(defvar neuron-zettelkasten neuron-default-zettelkasten
+  "The location of the current Zettelkasten directory.")
 
-(defun neuron--command (&rest args)
-  "Run a neuron command in the current zettekasten.
-ARGS is the argument passed to `neuron'."
-  (let* ((cmd (mapconcat #'shell-quote-argument (concatenate 'list (list "neuron" "-d" (neuron-get-zettelkasten)) args) " "))
-         (result (with-temp-buffer
-                   (list (call-process-shell-command cmd nil t) (buffer-string))
-                   ))
+(defun neuron--make-command (cmd &rest args)
+  "Construct a neuron command CMD with argument ARGS.
+The command contains a `--zettelkasten-dir' argument if `neuron-zettelkasten' is non-nil."
+  (mapconcat
+   #'shell-quote-argument
+   (append (list "neuron" "--zettelkasten-dir" neuron-zettelkasten cmd) args) " "))
+
+(defun neuron--run-command (cmd &rest args)
+  "Run the CMD neuron command with arguments ARGS in the current zettekasten.
+The command is executed as a synchronous process and the standard output is
+returned as a string."
+  (let* ((full-cmd (apply #'neuron--make-command cmd args))
+         (result   (with-temp-buffer
+                     (list (call-process-shell-command full-cmd nil t) (buffer-string))))
          (exit-code (nth 0 result))
          (output    (nth 1 result)))
     (if (equal exit-code 0)
         (string-trim-right output)
-      (and (message "Command `%s' exited with code %d: %s" cmd exit-code output)
+      (and (message "Command \"%s\" exited with code %d: %s" full-cmd exit-code output)
            nil))))
 
 (defun neuron--json-extract-info (match)
@@ -53,14 +59,11 @@ ARGS is the argument passed to `neuron'."
 
 (defun neuron--query-url-command (query-url)
   "Run a neuron query from a zquery QUERY-URL."
-  (let* ((res (neuron--command "query" "--uri" (format "'%s'" query-url))))
-    (neuron--json-extract-info res)))
+  (neuron--json-extract-info (neuron--run-command "query" "--uri" (format "'%s'" query-url))))
 
-(defun neuron--rib-command (&rest args)
-  "Run a neuron command to manage the web application.
-Pass the arguments ARGS to the rib CLI."
-  (let ((cmd (mapconcat #'shell-quote-argument (concatenate 'list (list "neuron" "-d" (neuron-get-zettelkasten) "rib") args) " ")))
-    (start-process-shell-command "neuron-rib" "*neuron-rib*" cmd)))
+(defun neuron--run-rib-process (&rest args)
+  "Run an asynchronous neuron process spawned by the rib command with arguments ARGS."
+  (start-process-shell-command "rib" "*rib*" (apply #'neuron--make-command "rib" args)))
 
 (defun neuron-select-zettelkasten ()
   "Select the active zettelkasten."
@@ -70,20 +73,19 @@ Pass the arguments ARGS to the rib CLI."
 (defun neuron-new-zettel ()
   "Create a new zettel."
   (interactive)
-  (let ((path (neuron--command "new" "")))
-    (when path
-      (let ((buffer (find-file-noselect path)))
-        (and
-         (pop-to-buffer-same-window buffer)
-         (zettel-mode)
-         (forward-line 1)
-         (end-of-line)
-         (message (concat "Created " path)))))))
+  (when-let* ((path (neuron--run-command "new" "''"))
+              (buffer (find-file-noselect path)))
+    (and
+     (pop-to-buffer-same-window buffer)
+     (zettel-mode)
+     (forward-line 1)
+     (end-of-line)
+     (message (concat "Created " path)))))
 
 (defun neuron-select-zettel ()
   "Find a zettel."
   (interactive)
-  (let ((match (counsel-rg "title: " (neuron-get-zettelkasten) "--no-line-number --no-heading --sort path" "Select Zettel: ")))
+  (let ((match (counsel-rg "title: " neuron-zettelkasten "--no-line-number --no-heading --sort path" "Select Zettel: ")))
     (f-base (car (split-string match ":")))))
 
 (defun neuron--select-zettel-from-query (query-url)
@@ -100,26 +102,29 @@ Return the ID of the selected zettel."
   "Edit a zettel."
   (interactive)
   (let* ((id (neuron-select-zettel))
-         (path (f-join "/" (neuron-get-zettelkasten) (concat id ".md")))
+         (path (f-join "/" neuron-zettelkasten (concat id ".md")))
          (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
      (zettel-mode))))
 
+(defun neuron--insert-zettel-link-from-id (id)
+  "Insert a short zettel link the the form `<ID>'."
+  (insert (format "[%s](z:/)" id)))
+
 (defun neuron-insert-zettel-link ()
   "Insert a markdown hypertext link to another zettel."
   (interactive)
-  (let ((id (neuron-select-zettel)))
-    (insert (format "[%s](z:/)" id))))
+  (neuron--insert-zettel-link-from-id (neuron-select-zettel)))
 
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
   (interactive)
-  (when-let* ((path   (neuron--command "new" ""))
+  (when-let* ((path   (neuron--run-command "new" ""))
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (and
-     (insert (format "[%s](z:/)" id))
+     (neuron--insert-zettel-link-from-id id)
      (pop-to-buffer-same-window buffer)
      (zettel-mode)
      (forward-line 1)
@@ -140,7 +145,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
   "Open a neuron zettel from ID.
 Execute BEFORE just before popping the buffer and AFTER just after enabling `zettel-mode'."
   (neuron--edit-zettel-from-path
-   (f-join "/" (neuron-get-zettelkasten) (format "%s.md" id))
+   (f-join "/" neuron-zettelkasten (format "%s.md" id))
    before
    after))
 
@@ -150,7 +155,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 
 (defun neuron--open-zettel-from-id (id)
   "Open the generated HTML file from the zettel ID."
-  (let* ((path (f-join (neuron-get-zettelkasten) ".neuron" "output" (format "%s.html" id)))
+  (let* ((path (f-join "/" neuron-zettelkasten ".neuron" "output" (format "%s.html" id)))
          (url (format "file://%s" path)))
     (browse-url url)))
 
@@ -159,7 +164,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
   (neuron--open-zettel-from-id (neuron-select-zettel)))
 
 (defun neuron-open-current-zettel ()
-  "Open the current zettel's HTML file in the browser"
+  "Open the current zettel's HTML file in the browser."
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
 (defun neuron-follow-thing-at-point ()
@@ -179,7 +184,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
-  (if (neuron--rib-command "-wS")
+  (if (neuron--run-rib-process "-wS")
       (message "Started web application on localhost:8080")
     (message "Rib command failed")))
 
