@@ -194,6 +194,13 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
       ("zcfquery" (neuron--select-zettel-from-query url))
       (_          (markdown-follow-thing-at-point link))))))
 
+(defun neuron-rib-watch ()
+  "Start a web app for browsing the zettelkasten."
+  (interactive)
+  (if (neuron--run-rib-process "-w")
+      (message "Watching %s for changes..." neuron-zettelkasten)
+    (message "Rib command failed")))
+
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
