@@ -239,7 +239,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (defun neuron-rib-kill ()
   "Stop the web application."
   (interactive)
-  (kill-buffer "*neuron-rib*"))
+  (kill-buffer "*rib*"))
 
 (defvar zettel-mode-map nil "Keymap for `zettel-mode'.")
 
