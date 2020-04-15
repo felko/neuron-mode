@@ -246,11 +246,11 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (progn
   (setq zettel-mode-map (make-sparse-keymap))
 
-  (define-key zettel-mode-map (kbd "C-c z n")   #'neuron-new-zettel)
+  (define-key zettel-mode-map (kbd "C-c C-z")   #'neuron-new-zettel)
   (define-key zettel-mode-map (kbd "C-c C-e")   #'neuron-edit-zettel)
   (define-key zettel-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
   (define-key zettel-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
-  (define-key zettel-mode-map (kbd "C-c C-r")   #'neuron-rib-open-current-zettel)
+  (define-key zettel-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
   (define-key zettel-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
 
 ;;;###autoload
