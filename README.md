@@ -16,20 +16,20 @@ entirely sure how to manage dependencies but if you do know how here they are:
 
 ## Features
 
-| Command                          | Binding     | Description                                                                      |
-| :------------------------------- | :---------- | :------------------------------------------------------------------------------- |
-| `neuron-new-zettel`              | `C-c C-z`   | Create a new zettel and open it for edition                                      |
-| `neuron-edit-zettel`             | `C-c C-e`   | Select an existing zettel and open it for edition                                |
-| `neuron-rib-open-current-zettel` | `C-c C-r`   | Open the current zettel in the web application (assuming an instance is running) |
-| `neuron-insert-zettel-link`      | `C-c C-l`   | Search a zettel by content and insert the link at point                          |
-| `neuron-insert-new-zettel`       | `C-c C-S-L` | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`                      |
-| `neuron-follow-thing-at-point`   | `C-c C-o`   | Override `markdown-follow-thing-at-point` to handle zettel URI protocol          |
-| `neuron-select-zettelkasten`     | N/A         | Set the current active Zettelkasten in which all of these command occur          |
-| `neuron-rib-generate`            | N/A         | Perform a one-off generation of the site                                         |
-| `neuron-rib-serve`               | N/A         | Start the wep application on `localhost:8080`                                    |
-| `neuron-rib-open-z-index`        | N/A         | Open the web application at `localhost:8080/z-index.html`                        |
-| `neuron-rib-open-zettel`         | N/A         | Select and open a zettel note in the web appliation                              |
-| `neuron-rib-kill`                | N/A         | Kill the web application process                                                 |
+| Command                          | Binding     | Description                                                             |
+| :------------------------------- | :---------- | :---------------------------------------------------------------------- |
+| `neuron-new-zettel`              | `C-c C-z`   | Create a new zettel and open it for edition                             |
+| `neuron-edit-zettel`             | `C-c C-e`   | Select an existing zettel and open it for edition                       |
+| `neuron-rib-open-current-zettel` | `C-c C-r`   | Open the current zettel's generated HTML file in the browser            |
+| `neuron-insert-zettel-link`      | `C-c C-l`   | Search a zettel by content and insert the link at point                 |
+| `neuron-insert-new-zettel`       | `C-c C-S-L` | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`             |
+| `neuron-follow-thing-at-point`   | `C-c C-o`   | Override `markdown-follow-thing-at-point` to handle zettel URI protocol |
+| `neuron-select-zettelkasten`     | N/A         | Set the current active Zettelkasten in which all of these command occur |
+| `neuron-rib-generate`            | N/A         | Perform a one-off generation of the site                                |
+| `neuron-rib-serve`               | N/A         | Start the wep application on `localhost:8080`                           |
+| `neuron-rib-open-z-index`        | N/A         | Open the web application at `localhost:8080/z-index.html`               |
+| `neuron-rib-open-zettel`         | N/A         | Select and open a zettel note in the web appliation                     |
+| `neuron-rib-kill`                | N/A         | Kill the web application process                                        |
 
 ## Customization
 
