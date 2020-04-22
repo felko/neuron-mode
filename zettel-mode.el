@@ -23,7 +23,6 @@
 (require 'url-parse)
 (require 'counsel)
 (require 'json)
-(require 'flycheck-mmark)
 
 (defgroup zettel-mode nil
   "A major mode for editing Zettelkasten notes with neuron."
@@ -41,12 +40,6 @@
   :group 'zettel-mode
   :type  'boolean
   :safe  'booleanp)
-
-(defcustom zettel-enable-flycheck-mmark nil
-  "Enable flycheck in zettel-mode."
-  :group 'zettel-mode
-  :type 'boolean
-  :safe 'booleanp)
 
 (defvar neuron-zettelkasten neuron-default-zettelkasten-directory
   "The location of the current Zettelkasten directory.")
@@ -280,9 +273,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (defun zettel-mode--setup-hooks ()
   "Initialize all local hooks in zettel-mode."
   (when neuron-generate-on-save
-    (add-hook 'after-save-hook #'neuron-rib-generate t t))
-  (when zettel-enable-flycheck-mmark
-    (flycheck-mmark-setup)))
+    (add-hook 'after-save-hook #'neuron-rib-generate t t)))
 
 (add-hook 'zettel-mode-hook #'zettel-mode--setup-hooks)
 
