@@ -51,18 +51,22 @@ The command contains a `--zettelkasten-dir' argument if `neuron-zettelkasten' is
    #'shell-quote-argument
    (append (list "neuron" "--zettelkasten-dir" neuron-zettelkasten cmd) args) " "))
 
-(defun neuron--run-command (cmd &rest args)
+(defun neuron--make-query-uri-command (uri)
+  "Construct a neuron query command that queries the zettelkasten from URI.
+URI is expected to have a zquery:/ scheme."
+  (concat (neuron--make-command "query") " --uri " (format "'%s'" uri)))
+
+(defun neuron--run-command (cmd)
   "Run the CMD neuron command with arguments ARGS in the current zettekasten.
 The command is executed as a synchronous process and the standard output is
 returned as a string."
-  (let* ((full-cmd (apply #'neuron--make-command cmd args))
-         (result   (with-temp-buffer
-                     (list (call-process-shell-command full-cmd nil t) (buffer-string))))
+  (let* ((result    (with-temp-buffer
+                      (list (call-process-shell-command cmd nil t) (buffer-string))))
          (exit-code (nth 0 result))
          (output    (nth 1 result)))
     (if (equal exit-code 0)
         (string-trim-right output)
-      (and (message "Command \"%s\" exited with code %d: %s" full-cmd exit-code output)
+      (and (message "Command \"%s\" exited with code %d: %s" cmd exit-code output)
            nil))))
 
 (defun neuron--json-extract-info (match)
@@ -70,9 +74,9 @@ returned as a string."
   (let ((zettels (json-read-from-string match)))
     (mapcar (lambda (obj) (list (map-elt obj 'id) (map-elt obj 'title))) zettels)))
 
-(defun neuron--query-url-command (query-url)
-  "Run a neuron query from a zquery QUERY-URL."
-  (neuron--json-extract-info (neuron--run-command "query" "--uri" (format "'%s'" query-url))))
+(defun neuron--query-url-command (uri)
+  "Run a neuron query from a zquery URI."
+  (neuron--json-extract-info (neuron--run-command (neuron--make-query-uri-command uri))))
 
 (defun neuron--run-rib-process (&rest args)
   "Run an asynchronous neuron process spawned by the rib command with arguments ARGS."
@@ -90,7 +94,7 @@ returned as a string."
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
   (interactive)
-  (when-let* ((path (neuron--run-command "new" "Untitled"))
+  (when-let* ((path   (neuron--run-command (neuron--make-command "new" "Untitled")))
               (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
@@ -105,12 +109,12 @@ returned as a string."
   (let ((match (counsel-rg "title: " neuron-zettelkasten "--no-line-number --no-heading --sort path" "Select Zettel: ")))
     (f-base (car (split-string match ":")))))
 
-(defun neuron--select-zettel-from-query (query-url)
-  "Select a zettel from the match of QUERY-URL.
+(defun neuron--select-zettel-from-query (URI)
+  "Select a zettel from the match of URI.
 Return the ID of the selected zettel."
   (ivy-read "Select Zettel: "
             (mapcar (lambda (z) (propertize (format "[%s] %s" (nth 0 z) (nth 1 z)) 'id (nth 0 z)))
-                    (neuron--query-url-command query-url))
+                    (neuron--query-url-command URI))
                                         ; :predicate  (lambda (path) (not (string-prefix-p "." path)))
             :action (lambda (z) (neuron--edit-zettel-from-id (get-text-property 0 'id z)))
             :caller 'neuron-select-zettel-from-query))
@@ -137,7 +141,7 @@ Return the ID of the selected zettel."
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
   (interactive)
-  (when-let* ((path   (neuron--run-command "new" "Untitled"))
+  (when-let* ((path   (neuron--run-command (neuron--make-command "new" "Untitled")))
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (and
