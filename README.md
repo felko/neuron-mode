@@ -23,12 +23,22 @@ entirely sure how to manage dependencies but if you do know how here they are:
 | `neuron-rib-open-current-zettel` | `C-c C-r`   | Open the current zettel in the web application (assuming an instance is running) |
 | `neuron-insert-zettel-link`      | `C-c C-l`   | Search a zettel by content and insert the link at point                          |
 | `neuron-insert-new-zettel`       | `C-c C-S-L` | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`                      |
-| `neuron-follow-thing-at-point`   |  `C-c C-o`  |  Override `markdown-follow-thing-at-point` to handle zettel URI protocol         |
-|  `neuron-select-zettelkasten`    | N/A         | Set the current active Zettelkasten in which all of these command occur          |
+| `neuron-follow-thing-at-point`   | `C-c C-o`   | Override `markdown-follow-thing-at-point` to handle zettel URI protocol          |
+| `neuron-select-zettelkasten`     | N/A         | Set the current active Zettelkasten in which all of these command occur          |
+| `neuron-rib-generate`            | N/A         | Perform a one-off generation of the site                                         |
 | `neuron-rib-serve`               | N/A         | Start the wep application on `localhost:8080`                                    |
-|  `neuron-rib-open-z-index`       | N/A         |  Open the web application at `localhost:8080/z-index.html`                       |
-| `neuron-rib-open-zettel`         |  N/A        | Select and open a zettel note in the web appliation                              |
+| `neuron-rib-open-z-index`        | N/A         | Open the web application at `localhost:8080/z-index.html`                        |
+| `neuron-rib-open-zettel`         | N/A         | Select and open a zettel note in the web appliation                              |
 | `neuron-rib-kill`                | N/A         | Kill the web application process                                                 |
+
+## Customization
+
+- `neuron-default-zettelkasten-directory` (default: `~/zettelkasten`)
+  Defines the default active zettelkasten when `neuron-select-zettelkasten`
+  wasn't called yet.
+- `neuron-generate-on-save` (default: `nil`)
+  Generates the site when saving a note. Opens a compilation buffer
+  (`neuron-rib-generate`)
 
 ## doom-emacs configuration
 
