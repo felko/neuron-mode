@@ -20,15 +20,35 @@
 (require 'markdown-mode)
 (require 'ivy)
 (require 'subr-x)
+(require 'url-parse)
 (require 'counsel)
 (require 'json)
+(require 'flycheck-mmark)
 
-(defcustom neuron-default-zettelkasten (expand-file-name "~/zettelkasten")
+(defgroup zettel-mode nil
+  "A major mode for editing Zettelkasten notes with neuron."
+  :link '(url-link "https://github.com/felko/zettel-mode")
+  :group 'markdown)
+
+(defcustom neuron-default-zettelkasten-directory (expand-file-name "~/zettelkasten")
   "The location of the default Zettelkasten directory."
-  :group 'neuron
-  :type 'string)
+  :group 'zettel-mode
+  :type  'string
+  :safe  'f-directory?)
 
-(defvar neuron-zettelkasten neuron-default-zettelkasten
+(defcustom neuron-generate-on-save nil
+  "Whether to generate the necessary zettels when a buffer is saved."
+  :group 'zettel-mode
+  :type  'boolean
+  :safe  'booleanp)
+
+(defcustom zettel-enable-flycheck-mmark nil
+  "Enable flycheck in zettel-mode."
+  :group 'zettel-mode
+  :type 'boolean
+  :safe 'booleanp)
+
+(defvar neuron-zettelkasten neuron-default-zettelkasten-directory
   "The location of the current Zettelkasten directory.")
 
 (defun neuron--make-command (cmd &rest args)
@@ -54,7 +74,7 @@ returned as a string."
 
 (defun neuron--json-extract-info (match)
   "Extract Zettel ID and title from MATCH, as a JSON string."
-  (let ((zettels (map-elt (json-read-from-string match) 'zettels)))
+  (let ((zettels (json-read-from-string match)))
     (mapcar (lambda (obj) (list (map-elt obj 'id) (map-elt obj 'title))) zettels)))
 
 (defun neuron--query-url-command (query-url)
@@ -177,22 +197,23 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
   (interactive)
   ;; short links (from the `thing-at-point' demo)
   (if (thing-at-point-looking-at
-         (rx (+ alphanumeric))
-         ;; limit to current line
-         (max (- (point) (line-beginning-position))
-              (- (line-end-position) (point))))
+       (rx (+ alphanumeric))
+       ;; limit to current line
+       (max (- (point) (line-beginning-position))
+            (- (line-end-position) (point))))
       (neuron--edit-zettel-from-id (match-string 0))
-  ;; markdown links
-  (let* ((link   (markdown-link-at-pos (point)))
-         (id     (nth 2 link))
-         (url    (nth 3 link))
-         (struct (url-generic-parse-url url))
-         (type   (url-type struct)))
-    (pcase type
-      ("z"        (neuron--edit-zettel-from-id id))
-      ("zquery"   (neuron--select-zettel-from-query url))
-      ("zcfquery" (neuron--select-zettel-from-query url))
-      (_          (markdown-follow-thing-at-point link))))))
+    ;; markdown links
+    (let* ((link   (markdown-link-at-pos (point)))
+           (id     (nth 2 link))
+           (url    (nth 3 link))
+           (struct (url-generic-parse-url url))
+           (type   (url-type struct)))
+      (pcase type
+        ("z"        (neuron--edit-zettel-from-id id))
+        ("zcf"      (neuron--edit-zettel-from-id id))
+        ("zquery"   (neuron--select-zettel-from-query url))
+        ("zcfquery" (neuron--select-zettel-from-query url))
+        (_          (markdown-follow-thing-at-point link))))))
 
 (defun neuron-rib-watch ()
   "Start a web app for browsing the zettelkasten."
@@ -252,6 +273,18 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
   (define-key zettel-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key zettel-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
   (define-key zettel-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
+
+(defvar zettel-mode-hook nil
+  "Hook run when entering zettel-mode.")
+
+(defun zettel-mode--setup-hooks ()
+  "Initialize all local hooks in zettel-mode."
+  (when neuron-generate-on-save
+    (add-hook 'after-save-hook #'neuron-rib-generate t t))
+  (when zettel-enable-flycheck-mmark
+    (flycheck-mmark-setup)))
+
+(add-hook 'zettel-mode-hook #'zettel-mode--setup-hooks)
 
 ;;;###autoload
 (define-derived-mode zettel-mode markdown-mode "Zettel"
