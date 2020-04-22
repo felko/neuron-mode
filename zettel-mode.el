@@ -23,6 +23,7 @@
 (require 'url-parse)
 (require 'counsel)
 (require 'json)
+(require 'map)
 
 (defgroup zettel-mode nil
   "A major mode for editing Zettelkasten notes with neuron."
@@ -164,6 +165,39 @@ the inserted link will either be of the form <ID> or
      (end-of-line)
      (message (concat "Created " path)))))
 
+(defun neuron--query-tag-tree ()
+  "Return the tag tree containing all the tags used in the active zettelkasten."
+  (json-read-from-string (neuron--run-command (neuron--make-query-uri-command "zquery://tags"))))
+
+(defun neuron--flatten-tag-node (node &optional root)
+  "Flatten NODE to a list of tags, recursively.
+See `neuron--flatten-tag-tree'."
+  (let* ((name  (map-elt node 'name))
+         (count (map-elt node 'count))
+         (children (map-elt node 'children))
+         (tag   (if root (concat root "/" name) name))
+         (elem  (list (cons 'count count) (cons 'tag tag))))
+    (cons elem (neuron--flatten-tag-tree children tag))))
+
+(defun neuron--flatten-tag-tree (tree &optional root)
+  "Flatten TREE into a list of tags.
+Each element is a map containing 'tag and 'count keys.
+The full tag is retrieved from the ROOT argument that is passed recursively."
+  (apply #'append (mapcar (lambda (node) (neuron--flatten-tag-node node root)) tree)))
+
+(defun neuron-select-tag ()
+  "Prompt for a tag that is already used in the zettelkasten.
+This allows"
+  (interactive)
+  (ivy-read "Select tag: "
+            (mapcar (lambda (elem)
+                      (let ((tag (map-elt elem 'tag))
+                            (count (map-elt elem 'count)))
+                        (propertize (format "%s (%d)" tag count) 'tag (map-elt elem 'tag))))
+                    (neuron--flatten-tag-tree (neuron--query-tag-tree)))
+            :action (lambda (tag) (insert (get-text-property 0 'tag tag)))
+            :caller 'neuron-select-tag))
+
 (defun neuron--edit-zettel-from-path (path &optional before after)
   "Open a neuron zettel from PATH.
 Execute BEFORE just before popping the buffer and AFTER just after enabling `zettel-mode'."
@@ -278,6 +312,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 
   (define-key zettel-mode-map (kbd "C-c C-z")   #'neuron-new-zettel)
   (define-key zettel-mode-map (kbd "C-c C-e")   #'neuron-edit-zettel)
+  (define-key zettel-mode-map (kbd "C-c C-t")   #'neuron-select-tag)
   (define-key zettel-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
   (define-key zettel-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key zettel-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)

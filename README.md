@@ -20,6 +20,7 @@ entirely sure how to manage dependencies but if you do know how here they are:
 | :------------------------------- | :---------- | :---------------------------------------------------------------------- |
 | `neuron-new-zettel`              | `C-c C-z`   | Create a new zettel and open it for edition                             |
 | `neuron-edit-zettel`             | `C-c C-e`   | Select an existing zettel and open it for edition                       |
+| `neuron-select-tag`              | `C-c C-t`   | Select and insert a tag                                                 |
 | `neuron-rib-open-current-zettel` | `C-c C-r`   | Open the current zettel's generated HTML file in the browser            |
 | `neuron-insert-zettel-link`      | `C-c C-l`   | Search a zettel by content and insert the link at point                 |
 | `neuron-insert-new-zettel`       | `C-c C-S-L` | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`             |
@@ -70,6 +71,7 @@ doom-emacs users can use this configuration to work with `zettel-mode`:
       (:prefix ("z" . "zettel")
         "z"    #'neuron-new-zettel
         "e"    #'neuron-edit-zettel
+        "t"    #'neuron-select-tag'
         "o"    #'neuron-open-current-zettel
         "l"    #'neuron-insert-zettel-link
         "L"    #'neuron-insert-new-zettel
