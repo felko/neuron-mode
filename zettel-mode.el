@@ -97,7 +97,7 @@ returned as a string."
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
   (interactive)
-  (when-let* ((path (neuron--run-command "new" ""))
+  (when-let* ((path (neuron--run-command "new" "Untitled"))
               (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
@@ -144,7 +144,7 @@ Return the ID of the selected zettel."
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
   (interactive)
-  (when-let* ((path   (neuron--run-command "new" ""))
+  (when-let* ((path   (neuron--run-command "new" "Untitled"))
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (and
