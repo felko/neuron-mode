@@ -71,7 +71,7 @@ doom-emacs users can use this configuration to work with `zettel-mode`:
       (:prefix ("z" . "zettel")
         "z"    #'neuron-new-zettel
         "e"    #'neuron-edit-zettel
-        "t"    #'neuron-select-tag'
+        "t"    #'neuron-select-tag
         "o"    #'neuron-open-current-zettel
         "l"    #'neuron-insert-zettel-link
         "L"    #'neuron-insert-new-zettel
