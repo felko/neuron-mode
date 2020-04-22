@@ -41,6 +41,12 @@
   :type  'boolean
   :safe  'booleanp)
 
+(defcustom neuron-use-short-links t
+  "Whether to use <ID> or [ID](z:/) syntax when inserting zettel links."
+  :group 'zettel-mode
+  :type  'boolean
+  :safe  'booleanp)
+
 (defvar neuron-zettelkasten neuron-default-zettelkasten-directory
   "The location of the current Zettelkasten directory.")
 
@@ -130,8 +136,14 @@ Return the ID of the selected zettel."
      (zettel-mode))))
 
 (defun neuron--insert-zettel-link-from-id (id)
-  "Insert a short zettel link the the form `<ID>'."
-  (insert (format "[%s](z:/)" id)))
+  "Insert a zettel link.
+Depending on the value of `neuron-use-short-links',
+the inserted link will either be of the form <ID> or
+[ID](z:/)."
+  (insert
+   (if neuron-use-short-links
+       (format "<%s>" id)
+     (format "[%s](z:/)" id))))
 
 (defun neuron-insert-zettel-link ()
   "Insert a markdown hypertext link to another zettel."

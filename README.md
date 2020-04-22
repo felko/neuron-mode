@@ -39,6 +39,9 @@ entirely sure how to manage dependencies but if you do know how here they are:
 - `neuron-generate-on-save` (default: `nil`)
   Generates the site when saving a note. Opens a compilation buffer
   (`neuron-rib-generate`)
+- `neuron-use-short-links` (default: `t`)
+  Controls whether inserted zettel links are in the form `[ID](z:/)` or
+  `<ID>`.
 
 ## doom-emacs configuration
 
