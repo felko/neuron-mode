@@ -193,8 +193,9 @@ This allows"
             (mapcar (lambda (elem)
                       (let ((tag (map-elt elem 'tag))
                             (count (map-elt elem 'count)))
-                        (propertize (format "%s (%d)" tag count) 'tag (map-elt elem 'tag))))
+                        (propertize (format "%s (%d)" tag count) 'tag tag 'count count)))
                     (neuron--flatten-tag-tree (neuron--query-tag-tree)))
+            :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
             :action (lambda (tag) (insert (get-text-property 0 'tag tag)))
             :caller 'neuron-select-tag))
 
