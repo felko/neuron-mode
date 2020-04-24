@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/felko/neuron-mode
 ;; Keywords: outlines
 ;; Package-Version: 0.1
-;; Package-Requires: ((emacs "26.3") (f "0.20.0") (ivy "0.13.0") (counsel "0.13.0") (markdown-mode "2.3"))
+;; Package-Requires: ((emacs "26.3") (f "0.20.0") (counsel "0.13.0") (markdown-mode "2.3"))
 ;;
 ;; This file is not part of GNU Emacs.
 
@@ -120,7 +120,7 @@ returned as a string."
               (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
-     (zettel-mode)
+     (neuron-mode)
      (forward-line 1)
      (end-of-line)
      (message (concat "Created " path)))))
@@ -149,7 +149,7 @@ Return the ID of the selected zettel."
          (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
-     (zettel-mode))))
+     (neuron-mode))))
 
 (defun neuron--insert-zettel-link-from-id (id)
   "Insert a zettel link.
@@ -175,7 +175,7 @@ the inserted link will either be of the form <ID> or
     (and
      (neuron--insert-zettel-link-from-id id)
      (pop-to-buffer-same-window buffer)
-     (zettel-mode)
+     (neuron-mode)
      (forward-line 1)
      (end-of-line)
      (message (concat "Created " path)))))
@@ -218,17 +218,17 @@ This allows"
 
 (defun neuron--edit-zettel-from-path (path &optional before after)
   "Open a neuron zettel from PATH.
-Execute BEFORE just before popping the buffer and AFTER just after enabling `zettel-mode'."
+Execute BEFORE just before popping the buffer and AFTER just after enabling `neuron-mode'."
   (let* ((buffer (find-file-noselect path)))
     (and
      (if before (funcall before) t)
      (pop-to-buffer-same-window buffer)
-     (zettel-mode)
+     (neuron-mode)
      (if after (funcall after) t))))
 
 (defun neuron--edit-zettel-from-id (id &optional before after)
   "Open a neuron zettel from ID.
-Execute BEFORE just before popping the buffer and AFTER just after enabling `zettel-mode'."
+Execute BEFORE just before popping the buffer and AFTER just after enabling `neuron-mode'."
   (neuron--edit-zettel-from-path
    (f-join "/" neuron-zettelkasten (format "%s.md" id))
    before
