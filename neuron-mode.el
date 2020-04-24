@@ -139,13 +139,13 @@ Return the ID of the selected zettel."
                     (neuron--query-url-command URI))
                                         ; :predicate  (lambda (path) (not (string-prefix-p "." path)))
             :action (lambda (z) (neuron--edit-zettel-from-id (get-text-property 0 'id z)))
-            :caller 'neuron-select-zettel-from-query))
+            :caller 'neuron--select-zettel-from-query))
 
 (defun neuron-edit-zettel ()
   "Select and edit a zettel from the currently active zettelkasten."
   (interactive)
-  (let* ((id (neuron-select-zettel))
-         (path (f-join "/" neuron-zettelkasten (concat id ".md")))
+  (let* ((zid (neuron-select-zettel))
+         (path (f-join "/" neuron-zettelkasten (concat zid ".md")))
          (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
@@ -258,11 +258,11 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
   (interactive)
   ;; short links (from the `thing-at-point' demo)
   (if (thing-at-point-looking-at
-       (rx (+ alphanumeric))
+       (rx "<" (group (+ alphanumeric)) ">")
        ;; limit to current line
        (max (- (point) (line-beginning-position))
             (- (line-end-position) (point))))
-      (neuron--edit-zettel-from-id (match-string 0))
+      (neuron--edit-zettel-from-id (match-string 1))
     ;; markdown links
     (let* ((link   (markdown-link-at-pos (point)))
            (id     (nth 2 link))
