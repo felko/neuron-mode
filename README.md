@@ -65,7 +65,7 @@ doom-emacs users can use this configuration to work with `zettel-mode`:
         )
       )
 
-(map! :map zettel-mode-map
+(map! :map neuron-mode-map
       :localleader
       "o"      #'neuron-follow-thing-at-point
       (:prefix ("z" . "zettel")
