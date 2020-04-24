@@ -46,36 +46,11 @@ entirely sure how to manage dependencies but if you do know how here they are:
 
 ## doom-emacs configuration
 
-doom-emacs users can use this configuration to work with `zettel-mode`:
+doom-emacs users can use this configuration to work with `neuron-mode`:
 
-```elisp
-(map! :leader
-      (:prefix ("z" . "zettel")
-        "z"  #'neuron-new-zettel
-        "e"  #'neuron-edit-zettel
-        "s"  #'neuron-select-zettelkasten
-        (:prefix ("r" . "rib")
-          "g" #'neuron-rib-generate
-          "w" #'neuron-rib-watch
-          "s" #'neuron-rib-serve
-          "o" #'neuron-rib-open-zettel
-          "z" #'neuron-rib-open-z-index
-          "k" #'neuron-rib-kill
-          )
-        )
-      )
+<https://gist.github.com/felko/cdb3fc19b3a60db27eb3c5bd319fc479>
 
-(map! :map neuron-mode-map
-      :localleader
-      "o"      #'neuron-follow-thing-at-point
-      (:prefix ("z" . "zettel")
-        "z"    #'neuron-new-zettel
-        "e"    #'neuron-edit-zettel
-        "t"    #'neuron-select-tag
-        "o"    #'neuron-open-current-zettel
-        "l"    #'neuron-insert-zettel-link
-        "L"    #'neuron-insert-new-zettel
-        )
-      )
+(include those files in `.doom.d/modules/tools/neuron`)
 
-```
+The package can then be enabled by inserting `neuron` in the `:tools` section
+of your `doom!` block (inside your `init.el`).
