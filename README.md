@@ -1,6 +1,6 @@
-# zettel-mode
+# neuron-mode
 
-`zettel-mode` is an Emacs major mode derived from [`markdown-mode`](https://jblevins.org/projects/markdown-mode/)
+`neuron-mode` is an Emacs major mode derived from [`markdown-mode`](https://jblevins.org/projects/markdown-mode/)
 to edit notes using the [`neuron`](https://neuron.srid.ca/) Zettelkasten manager.
 
 ## Installation

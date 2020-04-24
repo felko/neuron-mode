@@ -1,10 +1,11 @@
-;;; zettel-mode.el --- description -*- lexical-binding: t; -*-
+;;; neuron-mode.el --- description -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2020 felko
 ;;
 ;; Author: felko <http://github/felko>
-;; Homepage: https://github.com/felko/zettel-mode
-;; Package-Requires: ((emacs 26.3) (cl-lib "0.5"))
+;; Homepage: https://github.com/felko/neuron-mode
+;; Keywords: outlines
+;; Package-Requires: ((emacs "26.3") (cl-lib "0.5") (f "0.20.0") (swiper "0.7.0"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -17,34 +18,34 @@
 ;;; Code:
 
 (require 'f)
-(require 'markdown-mode)
-(require 'ivy)
 (require 'subr-x)
-(require 'url-parse)
-(require 'counsel)
 (require 'json)
-(require 'map)
+(require 'url-parse)
+(require 'ivy)
+(require 'counsel)
+(require 'markdown-mode)
 
-(defgroup zettel-mode nil
+(defgroup neuron nil
   "A major mode for editing Zettelkasten notes with neuron."
-  :link '(url-link "https://github.com/felko/zettel-mode")
+  :prefix "neuron-"
+  :link '(url-link "https://github.com/felko/neuron-mode")
   :group 'markdown)
 
 (defcustom neuron-default-zettelkasten-directory (expand-file-name "~/zettelkasten")
   "The location of the default Zettelkasten directory."
-  :group 'zettel-mode
+  :group 'neuron
   :type  'string
   :safe  'f-directory?)
 
 (defcustom neuron-generate-on-save nil
   "Whether to generate the necessary zettels when a buffer is saved."
-  :group 'zettel-mode
+  :group 'neuron
   :type  'boolean
   :safe  'booleanp)
 
 (defcustom neuron-use-short-links t
   "Whether to use <ID> or [ID](z:/) syntax when inserting zettel links."
-  :group 'zettel-mode
+  :group 'neuron
   :type  'boolean
   :safe  'booleanp)
 
@@ -170,7 +171,9 @@ the inserted link will either be of the form <ID> or
   (json-read-from-string (neuron--run-command (neuron--make-query-uri-command "zquery://tags"))))
 
 (defun neuron--flatten-tag-node (node &optional root)
-  "Flatten NODE to a list of tags, recursively.
+  "Flatten NODE into a list of tags.
+Each element is a map containing 'tag and 'count keys.
+The full tag is retrieved from the ROOT argument that is passed recursively.
 See `neuron--flatten-tag-tree'."
   (let* ((name  (map-elt node 'name))
          (count (map-elt node 'count))
@@ -292,48 +295,48 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `zet
 (defun neuron-rib-open-current-zettel ()
   "Open the web application in the web browser at the current zettel note."
   (interactive)
-  (let ((zettel-id (f-base (buffer-file-name))))
-    (neuron-rib-open-page (concat zettel-id ".html"))))
+  (let ((zid (f-base (buffer-file-name))))
+    (neuron-rib-open-page (concat zid ".html"))))
 
 (defun neuron-rib-open-zettel ()
   "Open a zettel in the web application."
   (interactive)
-  (let ((zettel-id (neuron-select-zettel)))
-    (neuron-rib-open-page (concat zettel-id ".html"))))
+  (let ((zid (neuron-select-zettel)))
+    (neuron-rib-open-page (concat zid ".html"))))
 
 (defun neuron-rib-kill ()
   "Stop the web application."
   (interactive)
   (kill-buffer "*rib*"))
 
-(defvar zettel-mode-map nil "Keymap for `zettel-mode'.")
+(defvar neuron-mode-map nil "Keymap for `neuron-mode'.")
 
 (progn
-  (setq zettel-mode-map (make-sparse-keymap))
+  (setq neuron-mode-map (make-sparse-keymap))
 
-  (define-key zettel-mode-map (kbd "C-c C-z")   #'neuron-new-zettel)
-  (define-key zettel-mode-map (kbd "C-c C-e")   #'neuron-edit-zettel)
-  (define-key zettel-mode-map (kbd "C-c C-t")   #'neuron-select-tag)
-  (define-key zettel-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
-  (define-key zettel-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
-  (define-key zettel-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
-  (define-key zettel-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
+  (define-key neuron-mode-map (kbd "C-c C-z")   #'neuron-new-zettel)
+  (define-key neuron-mode-map (kbd "C-c C-e")   #'neuron-edit-zettel)
+  (define-key neuron-mode-map (kbd "C-c C-t")   #'neuron-select-tag)
+  (define-key neuron-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
+  (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
+  (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
+  (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
 
-(defvar zettel-mode-hook nil
-  "Hook run when entering zettel-mode.")
+(defvar neuron-mode-hook nil
+  "Hook run when entering neuron-mode.")
 
-(defun zettel-mode--setup-hooks ()
-  "Initialize all local hooks in zettel-mode."
+(defun neuron-mode--setup-hooks ()
+  "Initialize all local hooks in neuron-mode."
   (when neuron-generate-on-save
     (add-hook 'after-save-hook #'neuron-rib-generate t t)))
 
-(add-hook 'zettel-mode-hook #'zettel-mode--setup-hooks)
+(add-hook 'neuron-mode-hook #'neuron-mode--setup-hooks)
 
 ;;;###autoload
-(define-derived-mode zettel-mode markdown-mode "Zettel"
+(define-derived-mode neuron-mode markdown-mode "Neuron"
   "A major mode to edit Zettelkasten notes with neuron."
-  (use-local-map zettel-mode-map))
+  (use-local-map neuron-mode-map))
 
-(provide 'zettel-mode)
+(provide 'neuron-mode)
 
-;;; zettel-mode.el ends here
+;;; neuron-mode.el ends here
