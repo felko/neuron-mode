@@ -75,6 +75,11 @@
   "Face for zettel IDs in zettels and ivy-read prompts"
   :group 'neuron-faces)
 
+(defface neuron-zettel-tag-face
+  '((t :inherit shadow))
+  "Face for zettel IDs in zettels and ivy-read prompts"
+  :group 'neuron-faces)
+
 (defvar neuron-zettelkasten neuron-default-zettelkasten-directory
   "The location of the current Zettelkasten directory.")
 
@@ -132,17 +137,27 @@ returned as a string."
      (end-of-line)
      (message (concat "Created " path)))))
 
-(defun neuron--select-zettel-from-query (uri)
-  "Select a zettel from the match of URI."
+(defun neuron--style-zettel-id (zid)
+  "Style a ZID as shown in the ivy prompt."
+  (propertize (format "<%s>" zid) 'face 'neuron-zettel-id-face))
+
+(defun neuron--style-tags (tags)
+  "Style TAGS as shown in the ivy prompt when selecting a zettel."
+  (propertize (format "(%s)" (s-join ", " tags)) 'face 'neuron-zettel-tag-face))
+
+(defun neuron--select-zettel-from-query (uri &optional show-tags)
+  "Select a zettel from the match of URI.
+Show the tags of each zettel when SHOW-TAGS is non-nil."
   (let ((selection
          (ivy-read "Select Zettel: "
                    (mapcar (lambda (zettel)
-                             (let* ((zid         (map-elt zettel 'id))
-                                    (zid-display (propertize (format "<%s>" zid) 'face 'neuron-zettel-id-face))
-                                    (title       (map-elt zettel 'title)))
-                               (propertize (format "%s %s" zid-display title) 'zettel zettel)))
+                             (let* ((zid     (map-elt zettel 'id))
+                                    (display (format "%s %s %s"
+                                                      (neuron--style-zettel-id zid)
+                                                      (map-elt zettel 'title)
+                                                      (neuron--style-tags (map-elt zettel 'tags)))))
+                               (propertize display 'zettel zettel)))
                            (neuron--query-url-command uri))
-                                        ; :predicate  (lambda (path) (not (string-prefix-p "." path)))
                    :caller 'neuron--select-zettel-from-query)))
     (get-text-property 0 'zettel selection)))
 
