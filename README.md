@@ -14,6 +14,8 @@ entirely sure how to manage dependencies but if you do know how here they are:
 - [`ripgrep`](https://github.com/BurntSushi/ripgrep)
 - [`f.el`](https://github.com/rejeep/f.el)
 
+Otherwise, doom-emacs users can use [this configuration](#doom-emacs-configuration).
+
 ## Features
 
 | Command                          | Binding     | Description                                                             |
