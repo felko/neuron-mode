@@ -143,7 +143,9 @@ returned as a string."
 
 (defun neuron--style-tags (tags)
   "Style TAGS as shown in the ivy prompt when selecting a zettel."
-  (propertize (format "(%s)" (s-join ", " tags)) 'face 'neuron-zettel-tag-face))
+  (if (eq tags [])
+      ""
+    (propertize (format "(%s)" (s-join ", " tags)) 'face 'neuron-zettel-tag-face)))
 
 (defun neuron--select-zettel-from-query (uri)
   "Select a zettel from the match of URI."
