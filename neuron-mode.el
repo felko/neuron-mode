@@ -145,9 +145,8 @@ returned as a string."
   "Style TAGS as shown in the ivy prompt when selecting a zettel."
   (propertize (format "(%s)" (s-join ", " tags)) 'face 'neuron-zettel-tag-face))
 
-(defun neuron--select-zettel-from-query (uri &optional show-tags)
-  "Select a zettel from the match of URI.
-Show the tags of each zettel when SHOW-TAGS is non-nil."
+(defun neuron--select-zettel-from-query (uri)
+  "Select a zettel from the match of URI."
   (let ((selection
          (ivy-read "Select Zettel: "
                    (mapcar (lambda (zettel)
@@ -204,9 +203,9 @@ the inserted link will either be of the form <ID> or
      (end-of-line)
      (message (concat "Created " path)))))
 
-(defun neuron--query-tag-tree ()
-  "Return the tag tree containing all the tags used in the active zettelkasten."
-  (json-read-from-string (neuron--run-command (neuron--make-query-uri-command "zquery://tags"))))
+(defun neuron--query-tag-tree (uri)
+  "Return the tag tree containing the tags matching the URI neuron query."
+  (json-read-from-string (neuron--run-command (neuron--make-query-uri-command uri))))
 
 (defun neuron--flatten-tag-node (node &optional root)
   "Flatten NODE into a list of tags.
@@ -226,19 +225,37 @@ Each element is a map containing 'tag and 'count keys.
 The full tag is retrieved from the ROOT argument that is passed recursively."
   (apply #'append (mapcar (lambda (node) (neuron--flatten-tag-node node root)) tree)))
 
+(defun neuron--style-zettel-count (count)
+  "Style the number COUNT of zettel associated with some tag."
+  (propertize (format "(%d)" count) 'face 'shadow))
+
+(defun neuron--select-tag-from-query (uri)
+  "Prompt for a tag that is matched by the zquery URI."
+  (let ((selection
+         (ivy-read "Select tag: "
+                   (mapcar (lambda (elem)
+                             (let ((tag (map-elt elem 'tag))
+                                   (count (map-elt elem 'count)))
+                               (propertize (format "%s %s" tag (neuron--style-zettel-count count)) 'tag tag 'count count)))
+                           (neuron--flatten-tag-tree (neuron--query-tag-tree uri)))
+                   :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
+                   :caller 'neuron-select-tag)))
+    (get-text-property 0 'tag selection)))
+
 (defun neuron-select-tag ()
-  "Prompt for a tag that is already used in the zettelkasten.
-This allows"
+  "Prompt for a tag that is already used in the zettelkasten."
+  (neuron--select-tag-from-query "zquery://tags"))
+
+(defun neuron-insert-tag ()
+  "Select and insert a tag that is already used in the zettelkasten."
   (interactive)
-  (ivy-read "Select tag: "
-            (mapcar (lambda (elem)
-                      (let ((tag (map-elt elem 'tag))
-                            (count (map-elt elem 'count)))
-                        (propertize (format "%s (%d)" tag count) 'tag tag 'count count)))
-                    (neuron--flatten-tag-tree (neuron--query-tag-tree)))
-            :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
-            :action (lambda (tag) (insert (get-text-property 0 'tag tag)))
-            :caller 'neuron-select-tag))
+  (insert (neuron-select-tag)))
+
+(defun neuron-query-tags (&rest tags)
+  "Select and edit a zettel from those that are tagged by TAGS."
+  (interactive (list (neuron-select-tag)))
+  (let ((query (mapconcat (lambda (tag) (format "tag=%s" tag)) tags "&")))
+    (neuron--edit-zettel-from-query (format "zquery://search?%s" query))))
 
 (defun neuron--edit-zettel-from-path (path &optional before after)
   "Open a neuron zettel from PATH.
@@ -260,7 +277,10 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
 
 (defun neuron--edit-zettel-from-query (uri)
   "Select and edit a zettel from a neuron query URI."
-  (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
+  (let ((struct (url-generic-parse-url uri)))
+    (pcase (url-host struct)
+      ("search" (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
+      ("tags"   (neuron-query-tag (neuron--select-tag-from-query uri))))))
 
 (defun neuron--get-current-zettel-id ()
   "Extract the zettel ID of the current file."
@@ -358,7 +378,8 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
 
   (define-key neuron-mode-map (kbd "C-c C-z")   #'neuron-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-e")   #'neuron-edit-zettel)
-  (define-key neuron-mode-map (kbd "C-c C-t")   #'neuron-select-tag)
+  (define-key neuron-mode-map (kbd "C-c C-t")   #'neuron-insert-tag)
+  (define-key neuron-mode-map (kbd "C-c C-S-t") #'neuron-query-tag)
   (define-key neuron-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
   (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
