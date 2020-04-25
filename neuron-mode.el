@@ -388,10 +388,10 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
   (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
 
 (defvar neuron-mode-hook nil
-  "Hook run when entering neuron-mode.")
+  "Hook run when entering `neuron-mode'.")
 
 (defun neuron-mode--setup-hooks ()
-  "Initialize all local hooks in neuron-mode."
+  "Initialize all local hooks in `neuron-mode'."
   (when neuron-generate-on-save
     (add-hook 'after-save-hook #'neuron-rib-generate t t)))
 
