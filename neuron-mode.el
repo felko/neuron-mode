@@ -63,6 +63,18 @@
   :type  'boolean
   :safe  'booleanp)
 
+(defgroup neuron-faces nil
+  "Faces used in neuron-mode."
+  :group 'neuron
+  :group 'faces)
+
+(defface neuron-zettel-id-face
+  '((((class color) (min-colors 88) (background dark)) :foreground "orange1")
+    (((class color) (min-colors 88) (background light)) :foreground "orange3")
+    (t :inherit link))
+  "Face for zettel IDs in zettels and ivy-read prompts"
+  :group 'neuron-faces)
+
 (defvar neuron-zettelkasten neuron-default-zettelkasten-directory
   "The location of the current Zettelkasten directory.")
 
@@ -91,14 +103,9 @@ returned as a string."
       (and (message "Command \"%s\" exited with code %d: %s" cmd exit-code output)
            nil))))
 
-(defun neuron--json-extract-info (match)
-  "Extract Zettel ID and title from MATCH, as a JSON string."
-  (let ((zettels (json-read-from-string match)))
-    (mapcar (lambda (obj) (list (map-elt obj 'id) (map-elt obj 'title))) zettels)))
-
 (defun neuron--query-url-command (uri)
   "Run a neuron query from a zquery URI."
-  (neuron--json-extract-info (neuron--run-command (neuron--make-query-uri-command uri))))
+  (json-read-from-string (neuron--run-command (neuron--make-query-uri-command uri))))
 
 (defun neuron--run-rib-process (&rest args)
   "Run an asynchronous neuron process spawned by the rib command with arguments ARGS."
@@ -125,26 +132,29 @@ returned as a string."
      (end-of-line)
      (message (concat "Created " path)))))
 
-(defun neuron-select-zettel ()
-  "Find a zettel in the current zettelkasten and return its ID."
-  (interactive)
-  (neuron--select-zettel-from-query "zquery://search"))
-
 (defun neuron--select-zettel-from-query (uri)
-  "Select a zettel from the match of URI.
-Return the ID of the selected zettel."
-  (ivy-read "Select Zettel: "
-            (mapcar (lambda (z) (propertize (format "[%s] %s" (nth 0 z) (nth 1 z)) 'id (nth 0 z)))
-                    (neuron--query-url-command uri))
+  "Select a zettel from the match of URI."
+  (let ((selection
+         (ivy-read "Select Zettel: "
+                   (mapcar (lambda (zettel)
+                             (let* ((zid         (map-elt zettel 'id))
+                                    (zid-display (propertize (format "<%s>" zid) 'face 'neuron-zettel-id-face))
+                                    (title       (map-elt zettel 'title)))
+                               (propertize (format "%s %s" zid-display title) 'zettel zettel)))
+                           (neuron--query-url-command uri))
                                         ; :predicate  (lambda (path) (not (string-prefix-p "." path)))
-            :action (lambda (z) (neuron--edit-zettel-from-id (get-text-property 0 'id z)))
-            :caller 'neuron--select-zettel-from-query))
+                   :caller 'neuron--select-zettel-from-query)))
+    (get-text-property 0 'zettel selection)))
+
+(defun neuron-select-zettel ()
+  "Find a zettel in the current zettelkasten."
+  (neuron--select-zettel-from-query "zquery://search"))
 
 (defun neuron-edit-zettel ()
   "Select and edit a zettel from the currently active zettelkasten."
   (interactive)
-  (let* ((zid (neuron-select-zettel))
-         (path (f-join "/" neuron-zettelkasten (concat zid ".md")))
+  (let* ((zettel (neuron-select-zettel))
+         (path   (map-elt zettel 'path))
          (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
@@ -233,6 +243,10 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
    before
    after))
 
+(defun neuron--edit-zettel-from-query (uri)
+  "Select and edit a zettel from a neuron query URI."
+  (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
+
 (defun neuron--get-current-zettel-id ()
   "Extract the zettel ID of the current file."
   (f-base (buffer-name)))
@@ -271,8 +285,8 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
       (pcase type
         ("z"        (neuron--edit-zettel-from-id id))
         ("zcf"      (neuron--edit-zettel-from-id id))
-        ("zquery"   (neuron--select-zettel-from-query url))
-        ("zcfquery" (neuron--select-zettel-from-query url))
+        ("zquery"   (neuron--edit-zettel-from-query url))
+        ("zcfquery" (neuron--edit-zettel-from-query url))
         (_          (markdown-follow-thing-at-point link))))))
 
 (defun neuron-rib-watch ()
