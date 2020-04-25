@@ -128,15 +128,14 @@ returned as a string."
 (defun neuron-select-zettel ()
   "Find a zettel in the current zettelkasten and return its ID."
   (interactive)
-  (let ((match (counsel-rg "title: " neuron-zettelkasten "--no-line-number --no-heading --sort path" "Select Zettel: ")))
-    (f-base (car (split-string match ":")))))
+  (neuron--select-zettel-from-query "zquery://search"))
 
-(defun neuron--select-zettel-from-query (URI)
+(defun neuron--select-zettel-from-query (uri)
   "Select a zettel from the match of URI.
 Return the ID of the selected zettel."
   (ivy-read "Select Zettel: "
             (mapcar (lambda (z) (propertize (format "[%s] %s" (nth 0 z) (nth 1 z)) 'id (nth 0 z)))
-                    (neuron--query-url-command URI))
+                    (neuron--query-url-command uri))
                                         ; :predicate  (lambda (path) (not (string-prefix-p "." path)))
             :action (lambda (z) (neuron--edit-zettel-from-id (get-text-property 0 'id z)))
             :caller 'neuron--select-zettel-from-query))
