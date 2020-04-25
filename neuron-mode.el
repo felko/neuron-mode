@@ -153,9 +153,9 @@ Show the tags of each zettel when SHOW-TAGS is non-nil."
                    (mapcar (lambda (zettel)
                              (let* ((zid     (map-elt zettel 'id))
                                     (display (format "%s %s %s"
-                                                      (neuron--style-zettel-id zid)
-                                                      (map-elt zettel 'title)
-                                                      (neuron--style-tags (map-elt zettel 'tags)))))
+                                                     (neuron--style-zettel-id zid)
+                                                     (map-elt zettel 'title)
+                                                     (neuron--style-tags (map-elt zettel 'tags)))))
                                (propertize display 'zettel zettel)))
                            (neuron--query-url-command uri))
                    :caller 'neuron--select-zettel-from-query)))
