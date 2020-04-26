@@ -294,10 +294,6 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
          (url (format "file://%s" path)))
     (browse-url url)))
 
-(defun neuron-open-zettel ()
-  "Select a zettel and open the corresponding generated HTML file in the browser."
-  (neuron--open-zettel-from-id (neuron-select-zettel)))
-
 (defun neuron-open-current-zettel ()
   "Open the current zettel's HTML file in the browser."
   (interactive)
@@ -365,8 +361,8 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
 (defun neuron-rib-open-zettel ()
   "Open a zettel in the web application."
   (interactive)
-  (let ((zid (neuron-select-zettel)))
-    (neuron-rib-open-page (concat zid ".html"))))
+  (let ((zettel (neuron-select-zettel)))
+    (neuron-rib-open-page (concat (map-elt zettel 'id) ".html"))))
 
 (defun neuron-rib-kill ()
   "Stop the web application."
