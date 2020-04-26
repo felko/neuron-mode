@@ -282,7 +282,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
   (let ((struct (url-generic-parse-url uri)))
     (pcase (url-host struct)
       ("search" (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
-      ("tags"   (neuron-query-tag (neuron--select-tag-from-query uri))))))
+      ("tags"   (neuron-query-tags (neuron--select-tag-from-query uri))))))
 
 (defun neuron--get-current-zettel-id ()
   "Extract the zettel ID of the current file."
@@ -381,7 +381,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
   (define-key neuron-mode-map (kbd "C-c C-z")   #'neuron-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-e")   #'neuron-edit-zettel)
   (define-key neuron-mode-map (kbd "C-c C-t")   #'neuron-insert-tag)
-  (define-key neuron-mode-map (kbd "C-c C-S-t") #'neuron-query-tag)
+  (define-key neuron-mode-map (kbd "C-c C-S-t") #'neuron-query-tags)
   (define-key neuron-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
   (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
