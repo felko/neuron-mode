@@ -28,7 +28,7 @@
 ;;; Commentary:
 ;;
 ;; Editing zettelkasten notes using the neuron zettelkasten manager
-;; https://neuron.srid.ca/
+;; https://neuron.zettel.page/
 
 ;;; Code:
 
