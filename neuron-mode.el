@@ -189,7 +189,7 @@ the inserted link will either be of the form <ID> or
 (defun neuron-insert-zettel-link ()
   "Insert a markdown hypertext link to another zettel."
   (interactive)
-  (neuron--insert-zettel-link-from-id (neuron-select-zettel)))
+  (neuron--insert-zettel-link-from-id (map-elt (neuron-select-zettel) 'id)))
 
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
