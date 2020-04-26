@@ -5,16 +5,10 @@ to edit notes using the [`neuron`](https://neuron.srid.ca/) Zettelkasten manager
 
 ## Installation
 
-Please note that I'm new to emacs and even newer to writing emacs packages,
-please open an issue if you notice something wrong. In particular I'm not
-entirely sure how to manage dependencies but if you do know how here they are:
+You can install neuron-mode via MELPA.
 
-- [`ivy`/`counsel`](https://github.com/abo-abo/swiper)
-- [`markdown-mode`](https://github.com/jrblevin/markdown-mode)
-- [`ripgrep`](https://github.com/BurntSushi/ripgrep)
-- [`f.el`](https://github.com/rejeep/f.el)
-
-Otherwise, doom-emacs users can use [this configuration](#doom-emacs-configuration).
+In addition, doom-emacs users can use [this configuration](#appendix-doom-emacs-configuration)
+to include neuron-mode into their private config.
 
 ## Features
 
@@ -47,7 +41,7 @@ Otherwise, doom-emacs users can use [this configuration](#doom-emacs-configurati
   Controls whether inserted zettel links are in the form `[ID](z:/)` or
   `<ID>`.
 
-## doom-emacs configuration
+## Appendix: doom-emacs configuration
 
 doom-emacs users can use this configuration to work with `neuron-mode`:
 
@@ -55,5 +49,6 @@ doom-emacs users can use this configuration to work with `neuron-mode`:
 
 (include those files in `.doom.d/modules/tools/neuron`)
 
-The package can then be enabled by inserting `neuron` in the `:tools` section
-of your `doom!` block (inside your `init.el`).
+This creates a private module that can then be enabled by
+inserting `neuron` under the `:tools` section of your `doom!`
+block (inside your `init.el`).
