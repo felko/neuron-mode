@@ -108,9 +108,14 @@ returned as a string."
       (and (message "Command \"%s\" exited with code %d: %s" cmd exit-code output)
            nil))))
 
+(defun neuron--read-query-result (output)
+  "Parse the OUTPUT of a query command in JSON.
+Extract only the result itself, so the query type is lost."
+  (map-elt (json-read-from-string output) 'result))
+
 (defun neuron--query-url-command (uri)
   "Run a neuron query from a zquery URI."
-  (map-elt (json-read-from-string (neuron--run-command (neuron--make-query-uri-command uri))) 'result))
+  (neuron--read-query-result (neuron--run-command (neuron--make-query-uri-command uri))))
 
 (defun neuron--run-rib-process (&rest args)
   "Run an asynchronous neuron process spawned by the rib command with arguments ARGS."
@@ -265,13 +270,19 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
      (neuron-mode)
      (if after (funcall after) t))))
 
+(defun neuron--query-zettel-from-id (id)
+  "Query a single zettel from the active zettelkasten from its ID.
+Returns a map containing its title, tag and full path."
+  (neuron--read-query-result (neuron--run-command (neuron--make-command "query" "--id" id))))
+
 (defun neuron--edit-zettel-from-id (id &optional before after)
   "Open a neuron zettel from ID.
 Execute BEFORE just before popping the buffer and AFTER just after enabling `neuron-mode'."
-  (neuron--edit-zettel-from-path
-   (f-join "/" neuron-zettelkasten (format "%s.md" id))
-   before
-   after))
+  (let ((zettel (neuron--query-zettel-from-id id)))
+    (neuron--edit-zettel-from-path
+     (map-elt zettel 'path)
+     before
+     after)))
 
 (defun neuron--edit-zettel-from-query (uri)
   "Select and edit a zettel from a neuron query URI."
