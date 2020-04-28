@@ -205,10 +205,6 @@ the inserted link will either be of the form <ID> or
      (end-of-line)
      (message (concat "Created " path)))))
 
-(defun neuron--query-tag-tree (uri)
-  "Return the tag tree containing the tags matching the URI neuron query."
-  (map-elt (json-read-from-string (neuron--run-command (neuron--make-query-uri-command uri))) 'result))
-
 (defun neuron--flatten-tag-node (node &optional root)
   "Flatten NODE into a list of tags.
 Each element is a map containing 'tag and 'count keys.
@@ -239,7 +235,7 @@ The full tag is retrieved from the ROOT argument that is passed recursively."
                              (let ((tag (map-elt elem 'tag))
                                    (count (map-elt elem 'count)))
                                (propertize (format "%s %s" tag (neuron--style-zettel-count count)) 'tag tag 'count count)))
-                           (neuron--flatten-tag-tree (neuron--query-tag-tree uri)))
+                           (neuron--flatten-tag-tree (neuron--query-url-command uri)))
                    :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
                    :caller 'neuron-select-tag)))
     (get-text-property 0 'tag selection)))
