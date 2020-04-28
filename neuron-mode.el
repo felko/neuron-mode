@@ -110,7 +110,7 @@ returned as a string."
 
 (defun neuron--query-url-command (uri)
   "Run a neuron query from a zquery URI."
-  (json-read-from-string (neuron--run-command (neuron--make-query-uri-command uri))))
+  (map-elt (json-read-from-string (neuron--run-command (neuron--make-query-uri-command uri))) 'result))
 
 (defun neuron--run-rib-process (&rest args)
   "Run an asynchronous neuron process spawned by the rib command with arguments ARGS."
@@ -207,7 +207,7 @@ the inserted link will either be of the form <ID> or
 
 (defun neuron--query-tag-tree (uri)
   "Return the tag tree containing the tags matching the URI neuron query."
-  (json-read-from-string (neuron--run-command (neuron--make-query-uri-command uri))))
+  (map-elt (json-read-from-string (neuron--run-command (neuron--make-query-uri-command uri))) 'result))
 
 (defun neuron--flatten-tag-node (node &optional root)
   "Flatten NODE into a list of tags.
