@@ -156,8 +156,6 @@ Extract only the result itself, so the query type is lost."
      (neuron-rebuild-cache)
      (pop-to-buffer-same-window buffer)
      (neuron-mode)
-     (forward-line 1)
-     (end-of-line)
      (message (concat "Created " path)))))
 
 (defun neuron--style-zettel-id (zid)
@@ -216,10 +214,11 @@ ZETTELS is a list of maps containing zettels containing its ID, path, title, and
 Depending on the value of `neuron-use-short-links',
 the inserted link will either be of the form <ID> or
 [ID](z:/)."
-  (insert
-   (if neuron-use-short-links
-       (format "<%s>" id)
-     (format "[%s](z:/)" id))))
+  (if neuron-use-short-links
+      (progn
+       (insert (format "<%s>" id))
+       (neuron--setup-overlays))
+     (format "[%s](z:/)" id)))
 
 (defun neuron-insert-zettel-link ()
   "Insert a markdown hypertext link to another zettel."
@@ -232,12 +231,10 @@ the inserted link will either be of the form <ID> or
   (when-let* ((path   (neuron--run-command (neuron--make-command "new" "Untitled")))
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
-    (and
+    (progn
      (neuron--insert-zettel-link-from-id id)
      (pop-to-buffer-same-window buffer)
      (neuron-mode)
-     (forward-line 1)
-     (end-of-line)
      (message (concat "Created " path)))))
 
 (defun neuron--flatten-tag-node (node &optional root)
@@ -427,10 +424,11 @@ Group 1 is the matched ID.")
     (goto-char (point-min))
     (while (re-search-forward neuron-short-link-regex nil t)
       (message "%S" (match-data t))
-      (let* ((ov    (make-overlay (match-beginning 0) (match-end 0)))
+      (let* ((ov    (make-overlay (match-beginning 0) (match-end 0) nil t t))
              (zid   (match-string 1))
              (title (map-elt (map-elt neuron--zettel-cache (intern zid)) 'title)))
         (overlay-put ov 'evaporate t)
+        ;; (overlay-put ov 'display zid)
         (overlay-put ov 'face 'neuron-zettel-id-face)
         (overlay-put ov 'modification-hooks (list #'neuron--title-overlay-update))
         (overlay-put ov 'after-string (format " %s" title))))))
