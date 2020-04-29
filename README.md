@@ -5,6 +5,9 @@ to edit notes using the [`neuron`](https://neuron.zettel.page/) Zettelkasten man
 
 ## Installation
 
+First, install [neuron](https://neuron.zettel.page/2011501.html) and
+make sure that the `neuron` command is in your path.
+
 You can install neuron-mode via MELPA.
 
 In addition, doom-emacs users can use [this configuration](#appendix-doom-emacs-configuration)
