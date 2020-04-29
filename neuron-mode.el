@@ -216,9 +216,9 @@ the inserted link will either be of the form <ID> or
 [ID](z:/)."
   (if neuron-use-short-links
       (progn
-       (insert (format "<%s>" id))
-       (neuron--setup-overlays))
-     (format "[%s](z:/)" id)))
+        (insert (format "<%s>" id))
+        (neuron--setup-overlays))
+    (format "[%s](z:/)" id)))
 
 (defun neuron-insert-zettel-link ()
   "Insert a markdown hypertext link to another zettel."
@@ -232,10 +232,10 @@ the inserted link will either be of the form <ID> or
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (progn
-     (neuron--insert-zettel-link-from-id id)
-     (pop-to-buffer-same-window buffer)
-     (neuron-mode)
-     (message (concat "Created " path)))))
+      (neuron--insert-zettel-link-from-id id)
+      (pop-to-buffer-same-window buffer)
+      (neuron-mode)
+      (message (concat "Created " path)))))
 
 (defun neuron--flatten-tag-node (node &optional root)
   "Flatten NODE into a list of tags.
@@ -407,15 +407,27 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
   "Regex mathcing zettel links like <ID>.
 Group 1 is the matched ID.")
 
-(defun neuron--title-overlay-update (ov after begin end &optional prechange-length)
-  "Update title overlay."
-  nil)
-;; (let* ((id    (buffer-substring begin end))
-;;        (title (map-elt table (intern id))))
-;;   (if title
-;;       (overlay-put ov 'after-string (concat " " (propertize title 'face 'neuron-title-overlay-face)))
-;;     (message "Unknown ID")
-;;     (delete-overlay ov))))
+(defun neuron--setup-overlay-from-id (ov zid)
+  "Setup a single title overlay from a zettel ID.
+OV is the overay to setup or update and ZID is the zettel ID."
+  (overlay-put ov 'evaporate t)
+  ;; (overlay-put ov 'display zid)
+  (overlay-put ov 'face 'neuron-zettel-id-face)
+  (overlay-put ov 'modification-hooks (list #'neuron--title-overlay-update))
+  (if-let* ((zettel (map-elt neuron--zettel-cache (intern zid)))
+            (title  (map-elt zettel 'title)))
+      (overlay-put ov 'after-string (format " %s" title))
+    (overlay-put ov 'after-string (format " %s" "Unknown"))))
+
+(defun neuron--title-overlay-update (ov after &rest _)
+  "Delete the title overlay OV on modification.
+When AFTER is non-nil, this hook is being called after the update occurs."
+  (let ((short-link (buffer-substring (overlay-start ov) (overlay-end ov))))
+    (when after
+      (if (string-match neuron-short-link-regex short-link)
+          (let ((zid (match-string 1 short-link)))
+            (neuron--setup-overlay-from-id ov zid))
+        (delete-overlay ov)))))
 
 (defun neuron--setup-overlays ()
   "Setup title overlays on zettel links."
@@ -423,15 +435,9 @@ Group 1 is the matched ID.")
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward neuron-short-link-regex nil t)
-      (message "%S" (match-data t))
       (let* ((ov    (make-overlay (match-beginning 0) (match-end 0) nil t t))
-             (zid   (match-string 1))
-             (title (map-elt (map-elt neuron--zettel-cache (intern zid)) 'title)))
-        (overlay-put ov 'evaporate t)
-        ;; (overlay-put ov 'display zid)
-        (overlay-put ov 'face 'neuron-zettel-id-face)
-        (overlay-put ov 'modification-hooks (list #'neuron--title-overlay-update))
-        (overlay-put ov 'after-string (format " %s" title))))))
+             (zid   (match-string 1)))
+        (neuron--setup-overlay-from-id ov zid)))))
 
 (defvar neuron-mode-map nil "Keymap for `neuron-mode'.")
 
