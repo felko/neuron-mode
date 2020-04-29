@@ -80,6 +80,11 @@
   "Face for zettel IDs in zettels and ivy-read prompts"
   :group 'neuron-faces)
 
+(defface neuron-title-overlay-face
+  '((t :italic t))
+  "Face for title overlays displayed next to short links."
+  :group 'neuron-face)
+
 (defvar neuron-zettelkasten neuron-default-zettelkasten-directory
   "The location of the current Zettelkasten directory.")
 
@@ -376,6 +381,35 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
   (interactive)
   (kill-buffer "*rib*"))
 
+(defconst neuron-short-link-regex (rx "<" (group (one-or-more alphanumeric)) ">")
+  "Regex mathcing zettel links like <ID>.
+Group 1 is the matched ID.")
+
+(defun neuron--title-overlay-update (ov after begin end &optional prechange-length)
+  "Update title overlay."
+  nil)
+;; (let* ((id    (buffer-substring begin end))
+;;        (title (map-elt table (intern id))))
+;;   (if title
+;;       (overlay-put ov 'after-string (concat " " (propertize title 'face 'neuron-title-overlay-face)))
+;;     (message "Unknown ID")
+;;     (delete-overlay ov))))
+
+(defun neuron--setup-overlays ()
+  "Setup title overlays on zettel links."
+  (remove-overlays)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward neuron-short-link-regex nil t)
+      (message "%S" (match-data t))
+      (let* ((ov    (make-overlay (match-beginning 0) (match-end 0)))
+             (zid   (match-string 1))
+             (title (map-elt (neuron--query-zettel-from-id zid) 'title)))
+        (overlay-put ov 'evaporate t)
+        (overlay-put ov 'face 'neuron-zettel-id-face)
+        (overlay-put ov 'modification-hooks (list #'neuron--title-overlay-update))
+        (overlay-put ov 'after-string (format " %s" title))))))
+
 (defvar neuron-mode-map nil "Keymap for `neuron-mode'.")
 
 (progn
@@ -396,7 +430,9 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
 (defun neuron-mode--setup-hooks ()
   "Initialize all local hooks in `neuron-mode'."
   (when neuron-generate-on-save
-    (add-hook 'after-save-hook #'neuron-rib-generate t t)))
+    (add-hook 'after-save-hook #'neuron-rib-generate t t))
+  (neuron--setup-overlays)
+  (add-hook 'after-save-hook #'neuron--setup-overlays t t))
 
 (add-hook 'neuron-mode-hook #'neuron-mode--setup-hooks)
 
