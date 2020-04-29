@@ -130,10 +130,22 @@ Extract only the result itself, so the query type is lost."
   "Run an synchronous neuron command spawned by the rib command with arguments ARGS."
   (compile (apply #'neuron--make-command "rib" args)))
 
+
+(defvar neuron--zettel-cache nil
+  "Map containing all zettels indexed by their ID.")
+
+(defun neuron-rebuild-cache ()
+  "Rebuild the zettel cache with the current zettelkasten."
+  (interactive)
+  (let ((zettels (neuron--query-url-command "zquery://search"))
+        (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'id)) zettel))))
+    (setq neuron--zettel-cache (mapcar assoc-id zettels))))
+
 (defun neuron-select-zettelkasten ()
   "Select the active zettelkasten."
   (interactive)
-  (setq neuron-zettelkasten (counsel-read-directory-name "Select Zettelkasten: ")))
+  (setq neuron-zettelkasten (counsel-read-directory-name "Select Zettelkasten: "))
+  (neuron-rebuild-cache))
 
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
@@ -141,6 +153,7 @@ Extract only the result itself, so the query type is lost."
   (when-let* ((path   (neuron--run-command (neuron--make-command "new" "Untitled")))
               (buffer (find-file-noselect path)))
     (and
+     (neuron-rebuild-cache)
      (pop-to-buffer-same-window buffer)
      (neuron-mode)
      (forward-line 1)
@@ -157,24 +170,36 @@ Extract only the result itself, so the query type is lost."
       ""
     (propertize (format "(%s)" (s-join ", " tags)) 'face 'neuron-zettel-tag-face)))
 
+(defun neuron--propertize-zettel (zettel)
+  "Format ZETTEL as shown in the selection prompt."
+  (let* ((zid (map-elt zettel 'id))
+         (display
+          (format "%s %s %s"
+                  (neuron--style-zettel-id zid)
+                  (map-elt zettel 'title)
+                  (neuron--style-tags (map-elt zettel 'tags)))))
+    (propertize display 'zettel zettel)))
+
+(defun neuron--select-zettel-from-list (zettels)
+  "Select a zettel from a given list.
+ZETTELS is a list of maps containing zettels containing its ID, path, title, and tags."
+  (let* ((selection
+          (ivy-read "Select Zettel: "
+                    (mapcar #'neuron--propertize-zettel zettels)
+                    :caller 'neuron--select-zettel-from-list)))
+    (get-text-property 0 'zettel selection)))
+
+(defun neuron--select-zettel-from-cache ()
+  "Select a zettel from the current cache."
+  (neuron--select-zettel-from-list neuron--zettel-cache))
+
 (defun neuron--select-zettel-from-query (uri)
   "Select a zettel from the match of URI."
-  (let ((selection
-         (ivy-read "Select Zettel: "
-                   (mapcar (lambda (zettel)
-                             (let* ((zid     (map-elt zettel 'id))
-                                    (display (format "%s %s %s"
-                                                     (neuron--style-zettel-id zid)
-                                                     (map-elt zettel 'title)
-                                                     (neuron--style-tags (map-elt zettel 'tags)))))
-                               (propertize display 'zettel zettel)))
-                           (neuron--query-url-command uri))
-                   :caller 'neuron--select-zettel-from-query)))
-    (get-text-property 0 'zettel selection)))
+  (neuron--select-zettel-from-list (neuron--query-url-command uri)))
 
 (defun neuron-select-zettel ()
   "Find a zettel in the current zettelkasten."
-  (neuron--select-zettel-from-query "zquery://search"))
+  (neuron--select-zettel-from-cache))
 
 (defun neuron-edit-zettel ()
   "Select and edit a zettel from the currently active zettelkasten."
@@ -404,7 +429,7 @@ Group 1 is the matched ID.")
       (message "%S" (match-data t))
       (let* ((ov    (make-overlay (match-beginning 0) (match-end 0)))
              (zid   (match-string 1))
-             (title (map-elt (neuron--query-zettel-from-id zid) 'title)))
+             (title (map-elt (map-elt neuron--zettel-cache (intern zid)) 'title)))
         (overlay-put ov 'evaporate t)
         (overlay-put ov 'face 'neuron-zettel-id-face)
         (overlay-put ov 'modification-hooks (list #'neuron--title-overlay-update))
@@ -440,6 +465,8 @@ Group 1 is the matched ID.")
 (define-derived-mode neuron-mode markdown-mode "Neuron"
   "A major mode to edit Zettelkasten notes with neuron."
   (use-local-map neuron-mode-map))
+
+(neuron-rebuild-cache)
 
 (provide 'neuron-mode)
 
