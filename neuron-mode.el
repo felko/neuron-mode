@@ -288,29 +288,36 @@ ELEM is a map containing the name of the tag and the number of associated zettel
   (let ((query (mapconcat (lambda (tag) (format "tag=%s" tag)) tags "&")))
     (neuron--edit-zettel-from-query (format "zquery://search?%s" query))))
 
-(defun neuron--edit-zettel-from-path (path &optional before after)
-  "Open a neuron zettel from PATH.
-Execute BEFORE just before popping the buffer and AFTER just after enabling `neuron-mode'."
-  (let* ((buffer (find-file-noselect path)))
-    (and
-     (if before (funcall before) t)
-     (pop-to-buffer-same-window buffer)
-     (neuron-mode)
-     (if after (funcall after) t))))
+(defun neuron--edit-zettel-from-path (path)
+  "Open a neuron zettel from PATH."
+  (pop-to-buffer-same-window (find-file-noselect path))
+  (neuron-mode))
 
 (defun neuron--query-zettel-from-id (id)
   "Query a single zettel from the active zettelkasten from its ID.
 Returns a map containing its title, tag and full path."
+  (message "Queried")
   (neuron--read-query-result (neuron--run-command (neuron--make-command "query" "--id" id))))
 
-(defun neuron--edit-zettel-from-id (id &optional before after)
-  "Open a neuron zettel from ID.
-Execute BEFORE just before popping the buffer and AFTER just after enabling `neuron-mode'."
-  (let ((zettel (neuron--query-zettel-from-id id)))
+(defun neuron--get-cached-zettel-from-id (id &optional failed)
+  "Fetch a zettel from the cache from its ID.
+When FAILED is non-nil, the cache is regenerated first.
+This is called internally to automatically refresh the cache when the ID
+is not found."
+  (message "Cached")
+  (when failed
+    (neuron-rebuild-cache))
+  (if-let ((zettel (map-elt neuron--zettel-cache (intern id))))
+      zettel
+    (if failed
+        (neuron--get-current-zettel-id id t)
+      (message "Cannot find zettel with ID %s" id))))
+
+(defun neuron--edit-zettel-from-id (id)
+  "Open a neuron zettel from ID."
+  (let ((zettel (neuron--get-cached-zettel-from-id id)))
     (neuron--edit-zettel-from-path
-     (map-elt zettel 'path)
-     before
-     after)))
+     (map-elt zettel 'path))))
 
 (defun neuron--edit-zettel-from-query (uri)
   "Select and edit a zettel from a neuron query URI."
@@ -339,7 +346,7 @@ Execute BEFORE just before popping the buffer and AFTER just after enabling `neu
   (interactive)
   ;; short links (from the `thing-at-point' demo)
   (if (thing-at-point-looking-at
-       (rx "<" (group (+ alphanumeric)) ">")
+       neuron-short-link-regex
        ;; limit to current line
        (max (- (point) (line-beginning-position))
             (- (line-end-position) (point))))
