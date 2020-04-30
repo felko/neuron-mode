@@ -26,7 +26,8 @@ to include neuron-mode into their private config.
 | `neuron-query-tag`               | `C-c C-S-t` | Select a tag and then a zettel with that tag                            |
 | `neuron-rib-open-current-zettel` | `C-c C-r`   | Open the current zettel's generated HTML file in the browser            |
 | `neuron-insert-zettel-link`      | `C-c C-l`   | Search a zettel by content and insert the link at point                 |
-| `neuron-insert-new-zettel`       | `C-c C-S-L` | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`             |
+| `neuron-insert-new-zettel`       | `C-c C-S-l` | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`             |
+| `neuron-refresh-buffer`          | `C-c C-S-r` | Regenerate the zettel cache and title overlays in the current buffer    |
 | `neuron-follow-thing-at-point`   | `C-c C-o`   | Override `markdown-follow-thing-at-point` to handle zettel URI protocol |
 | `neuron-select-zettelkasten`     | N/A         | Set the current active Zettelkasten in which all of these command occur |
 | `neuron-rib-generate`            | N/A         | Perform a one-off generation of the site                                |

@@ -146,18 +146,23 @@ Extract only the result itself, so the query type is lost."
 (defvar neuron--zettel-cache nil
   "Map containing all zettels indexed by their ID.")
 
-(defun neuron-rebuild-cache ()
+(defun neuron--rebuild-cache ()
   "Rebuild the zettel cache with the current zettelkasten."
-  (interactive)
   (let ((zettels (neuron--query-url-command "zquery://search"))
         (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'id)) zettel))))
     (setq neuron--zettel-cache (mapcar assoc-id zettels))))
+
+(defun neuron-refresh-buffer ()
+  "Regenerate the zettel cache and the title overlays in the current buffer."
+  (interactive)
+  (neuron--rebuild-cache)
+  (neuron--setup-overlays))
 
 (defun neuron-select-zettelkasten ()
   "Select the active zettelkasten."
   (interactive)
   (setq neuron-zettelkasten (counsel-read-directory-name "Select Zettelkasten: "))
-  (neuron-rebuild-cache))
+  (neuron--rebuild-cache))
 
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
@@ -165,7 +170,7 @@ Extract only the result itself, so the query type is lost."
   (when-let* ((path   (neuron--run-command (neuron--make-command "new" "Untitled")))
               (buffer (find-file-noselect path)))
     (and
-     (neuron-rebuild-cache)
+     (neuron--rebuild-cache)
      (pop-to-buffer-same-window buffer)
      (neuron-mode)
      (message (concat "Created " path)))))
@@ -244,6 +249,7 @@ the inserted link will either be of the form <ID> or
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (progn
+      (neuron--rebuild-cache)
       (neuron--insert-zettel-link-from-id id)
       (pop-to-buffer-same-window buffer)
       (neuron-mode)
@@ -316,7 +322,7 @@ When FAILED is non-nil, the cache is regenerated first.
 This is called internally to automatically refresh the cache when the ID
 is not found."
   (when failed
-    (neuron-rebuild-cache))
+    (neuron--rebuild-cache))
   (if-let ((zettel (map-elt neuron--zettel-cache (intern id))))
       zettel
     (if failed
@@ -471,6 +477,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (define-key neuron-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
   (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
+  (define-key neuron-mode-map (kbd "C-c C-S-r") #'neuron-refresh-buffer)
   (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
 
 (defvar neuron-mode-hook nil
@@ -490,7 +497,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   "A major mode to edit Zettelkasten notes with neuron."
   (use-local-map neuron-mode-map))
 
-(neuron-rebuild-cache)
+(neuron--rebuild-cache)
 
 (provide 'neuron-mode)
 
