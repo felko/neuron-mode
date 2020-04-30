@@ -286,9 +286,9 @@ The full tag is retrieved from the ROOT argument that is passed recursively."
 (defun neuron--propertize-tag (elem)
   "Format ELEM as shown in the tag selection prompt.
 ELEM is a map containing the name of the tag and the number of associated zettels."
-  (let ((tag   (map-elt elem 'tag))
-        (count (map-elt elem 'count))
-        (display-count (propertize (format "(%d)" count) 'face 'shadow)))
+  (let* ((tag   (map-elt elem 'tag))
+         (count (map-elt elem 'count))
+         (display-count (propertize (format "(%d)" count) 'face 'shadow)))
     (propertize (format "%s %s" tag display-count) 'tag tag 'count count)))
 
 (defun neuron--select-tag-from-query (uri)
