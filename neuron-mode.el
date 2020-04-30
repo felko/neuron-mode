@@ -196,31 +196,34 @@ Extract only the result itself, so the query type is lost."
                   (neuron--style-tags (map-elt zettel 'tags)))))
     (propertize display 'zettel zettel)))
 
-(defun neuron--select-zettel-from-list (zettels)
+(defun neuron--select-zettel-from-list (zettels &optional prompt)
   "Select a zettel from a given list.
-ZETTELS is a list of maps containing zettels containing its ID, path, title, and tags."
+ZETTELS is a list of maps containing zettels (keys: id, title, tags, path)
+PROMPT is the prompt passed to `ivy-read'."
   (let* ((selection
-          (ivy-read "Select Zettel: "
+          (ivy-read (or prompt "Select Zettel: ")
                     (mapcar #'neuron--propertize-zettel zettels)
                     :caller 'neuron--select-zettel-from-list)))
     (get-text-property 0 'zettel selection)))
 
-(defun neuron--select-zettel-from-cache ()
-  "Select a zettel from the current cache."
-  (neuron--select-zettel-from-list neuron--zettel-cache))
+(defun neuron--select-zettel-from-cache (&optional prompt)
+  "Select a zettel from the current cache.
+PROMPT is the prompt passed to `ivy-read'."
+  (neuron--select-zettel-from-list neuron--zettel-cache prompt))
 
 (defun neuron--select-zettel-from-query (uri)
   "Select a zettel from the match of URI."
   (neuron--select-zettel-from-list (neuron--query-url-command uri)))
 
-(defun neuron-select-zettel ()
-  "Find a zettel in the current zettelkasten."
-  (neuron--select-zettel-from-cache))
+(defun neuron-select-zettel (&optional prompt)
+  "Find a zettel in the current zettelkasten.
+PROMPT is the prompt passed to `ivy-read'."
+  (neuron--select-zettel-from-cache prompt))
 
 (defun neuron-edit-zettel ()
   "Select and edit a zettel from the currently active zettelkasten."
   (interactive)
-  (let* ((zettel (neuron-select-zettel))
+  (let* ((zettel (neuron-select-zettel "Edit zettel: "))
          (path   (map-elt zettel 'path))
          (buffer (find-file-noselect path)))
     (and
@@ -349,11 +352,26 @@ is not found."
   "Extract the zettel ID of the current file."
   (f-base (buffer-name)))
 
-(defun neuron--open-zettel-from-id (id)
-  "Open the generated HTML file from the zettel ID."
-  (let* ((path (f-join "/" neuron-zettelkasten ".neuron" "output" (format "%s.html" id)))
+(defun neuron--open-page (rel-path)
+  "Open the REL-PATH in the browser.
+The path is relative to the neuron output directory."
+  (let* ((path (f-join "/" neuron-zettelkasten ".neuron" "output" rel-path))
          (url (format "file://%s" path)))
     (browse-url url)))
+
+(defun neuron--open-zettel-from-id (id)
+  "Open the generated HTML file from the zettel ID."
+  (neuron--open-page (format "%s.html" id)))
+
+(defun neuron-open-zettel ()
+  "Select a zettel and open the associated HTML file."
+  (interactive)
+  (neuron--open-zettel-from-id (map-elt (neuron-select-zettel "Open zettel: ") 'id)))
+
+(defun neuron-open-index ()
+  "Open the index.html file."
+  (interactive)
+  (neuron--open-page "index.html"))
 
 (defun neuron-open-current-zettel ()
   "Open the current zettel's HTML file in the browser."
