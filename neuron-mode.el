@@ -156,7 +156,8 @@ Extract only the result itself, so the query type is lost."
   "Regenerate the zettel cache and the title overlays in the current buffer."
   (interactive)
   (neuron--rebuild-cache)
-  (neuron--setup-overlays))
+  (neuron--setup-overlays)
+  (message "Regenerated zettel cache"))
 
 (defun neuron-select-zettelkasten ()
   "Select the active zettelkasten."
