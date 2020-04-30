@@ -255,21 +255,22 @@ Each element is a map containing 'tag and 'count keys.
 The full tag is retrieved from the ROOT argument that is passed recursively."
   (apply #'append (mapcar (lambda (node) (neuron--flatten-tag-node node root)) tree)))
 
-(defun neuron--style-zettel-count (count)
-  "Style the number COUNT of zettel associated with some tag."
-  (propertize (format "(%d)" count) 'face 'shadow))
+(defun neuron--propertize-tag (elem)
+  "Format ELEM as shown in the tag selection prompt.
+ELEM is a map containing the name of the tag and the number of associated zettels."
+  (let ((tag   (map-elt elem 'tag))
+        (count (map-elt elem 'count))
+        (display-count (propertize (format "(%d)" count) 'face 'shadow)))
+    (propertize (format "%s %s" tag display-count) 'tag tag 'count count)))
 
 (defun neuron--select-tag-from-query (uri)
   "Prompt for a tag that is matched by the zquery URI."
-  (let ((selection
-         (ivy-read "Select tag: "
-                   (mapcar (lambda (elem)
-                             (let ((tag (map-elt elem 'tag))
-                                   (count (map-elt elem 'count)))
-                               (propertize (format "%s %s" tag (neuron--style-zettel-count count)) 'tag tag 'count count)))
-                           (neuron--flatten-tag-tree (neuron--query-url-command uri)))
-                   :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
-                   :caller 'neuron-select-tag)))
+  (let* ((tags (neuron--flatten-tag-tree (neuron--query-url-command uri)))
+         (selection
+          (ivy-read "Select tag: "
+                    (mapcar #'neuron--propertize-tag tags)
+                    :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
+                    :caller 'neuron-select-tag)))
     (get-text-property 0 'tag selection)))
 
 (defun neuron-select-tag ()
