@@ -172,7 +172,7 @@ Extract only the result itself, so the query type is lost."
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
   (interactive)
-  (when-let* ((title  (read-string "Title: "))
+  (when-let* ((title  (if (s-blank-str? (setq-local input (read-string "Title: "))) "Untitled" input))
               (path   (neuron--run-command (neuron--make-command "new" title)))
               (buffer (find-file-noselect path)))
     (and
