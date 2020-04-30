@@ -75,13 +75,20 @@
   "Face for zettel IDs in zettels and ivy-read prompts"
   :group 'neuron-faces)
 
+(defface neuron-unknown-zettel-id-face
+  '((t :inherit error))
+  "Face for zettel IDs in zettels and ivy-read prompts"
+  :group 'neuron-faces)
+
 (defface neuron-zettel-tag-face
   '((t :inherit shadow))
   "Face for zettel IDs in zettels and ivy-read prompts"
   :group 'neuron-faces)
 
 (defface neuron-title-overlay-face
-  '((t :italic t))
+  '((((class color) (min-colors 16)) :foreground "DarkOrange")
+    (((class color)) :foreground "yellow")
+    (t :italic t))
   "Face for title overlays displayed next to short links."
   :group 'neuron-face)
 
@@ -129,7 +136,6 @@ Extract only the result itself, so the query type is lost."
 (defun neuron--run-rib-compile (&rest args)
   "Run an synchronous neuron command spawned by the rib command with arguments ARGS."
   (compile (apply #'neuron--make-command "rib" args)))
-
 
 (defvar neuron--zettel-cache nil
   "Map containing all zettels indexed by their ID.")
@@ -296,7 +302,6 @@ ELEM is a map containing the name of the tag and the number of associated zettel
 (defun neuron--query-zettel-from-id (id)
   "Query a single zettel from the active zettelkasten from its ID.
 Returns a map containing its title, tag and full path."
-  (message "Queried")
   (neuron--read-query-result (neuron--run-command (neuron--make-command "query" "--id" id))))
 
 (defun neuron--get-cached-zettel-from-id (id &optional failed)
@@ -304,14 +309,14 @@ Returns a map containing its title, tag and full path."
 When FAILED is non-nil, the cache is regenerated first.
 This is called internally to automatically refresh the cache when the ID
 is not found."
-  (message "Cached")
   (when failed
     (neuron-rebuild-cache))
   (if-let ((zettel (map-elt neuron--zettel-cache (intern id))))
       zettel
     (if failed
         (neuron--get-current-zettel-id id t)
-      (message "Cannot find zettel with ID %s" id))))
+      (message "Cannot find zettel with ID %s" id)
+      nil)))
 
 (defun neuron--edit-zettel-from-id (id)
   "Open a neuron zettel from ID."
@@ -340,6 +345,10 @@ is not found."
   "Open the current zettel's HTML file in the browser."
   (interactive)
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
+
+(defconst neuron-short-link-regex (rx "<" (group (one-or-more alphanumeric)) ">")
+  "Regex mathcing zettel links like <ID>.
+Group 1 is the matched ID.")
 
 (defun neuron-follow-thing-at-point ()
   "Open the zettel link at point."
@@ -411,10 +420,6 @@ is not found."
   (interactive)
   (kill-buffer "*rib*"))
 
-(defconst neuron-short-link-regex (rx "<" (group (one-or-more alphanumeric)) ">")
-  "Regex mathcing zettel links like <ID>.
-Group 1 is the matched ID.")
-
 (defun neuron--setup-overlay-from-id (ov zid)
   "Setup a single title overlay from a zettel ID.
 OV is the overay to setup or update and ZID is the zettel ID."
@@ -422,10 +427,11 @@ OV is the overay to setup or update and ZID is the zettel ID."
   ;; (overlay-put ov 'display zid)
   (overlay-put ov 'face 'neuron-zettel-id-face)
   (overlay-put ov 'modification-hooks (list #'neuron--title-overlay-update))
-  (if-let* ((zettel (map-elt neuron--zettel-cache (intern zid)))
+  (if-let* ((zettel (neuron--get-cached-zettel-from-id zid))
             (title  (map-elt zettel 'title)))
-      (overlay-put ov 'after-string (format " %s" title))
-    (overlay-put ov 'after-string (format " %s" "Unknown"))))
+      (overlay-put ov 'after-string (format " %s" (propertize title 'face 'neuron-title-overlay-face)))
+    (overlay-put ov 'after-string (format " %s" "Unknown"))
+    (overlay-put ov 'face 'neuron-unknown-zettel-id-face)))
 
 (defun neuron--title-overlay-update (ov after &rest _)
   "Delete the title overlay OV on modification.
@@ -443,7 +449,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward neuron-short-link-regex nil t)
-      (let* ((ov    (make-overlay (match-beginning 0) (match-end 0) nil t t))
+      (let* ((ov    (make-overlay (match-beginning 0) (match-end 0) nil t nil))
              (zid   (match-string 1)))
         (neuron--setup-overlay-from-id ov zid)))))
 
