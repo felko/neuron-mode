@@ -167,7 +167,8 @@ Extract only the result itself, so the query type is lost."
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
   (interactive)
-  (when-let* ((path   (neuron--run-command (neuron--make-command "new" "Untitled")))
+  (when-let* ((title  (read-string "Title: "))
+              (path   (neuron--run-command (neuron--make-command "new" title)))
               (buffer (find-file-noselect path)))
     (and
      (neuron--rebuild-cache)
@@ -245,7 +246,8 @@ the inserted link will either be of the form <ID> or
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
   (interactive)
-  (when-let* ((path   (neuron--run-command (neuron--make-command "new" "Untitled")))
+  (when-let* ((title  (read-string "Title: "))
+              (path   (neuron--run-command (neuron--make-command "new" title)))
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (progn
