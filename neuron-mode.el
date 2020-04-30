@@ -98,6 +98,10 @@
   "Face for the 'Unknown' label dislayed next to short links with unknown IDs."
   :group 'neuron-face)
 
+(defface neuron-zettel-link-mouse-face
+  '((t :inherit highlight))
+  "Face displayed when hovering a zettel short link.")
+
 (defvar neuron-zettelkasten neuron-default-zettelkasten-directory
   "The location of the current Zettelkasten directory.")
 
@@ -459,6 +463,7 @@ OV is the overay to setup or update and ZID is the zettel ID."
   (overlay-put ov 'evaporate t)
   ;; (overlay-put ov 'display zid)
   (overlay-put ov 'face 'neuron-zettel-id-face)
+  (overlay-put ov 'mouse-face 'neuron-zettel-link-mouse-face)
   (overlay-put ov 'modification-hooks (list #'neuron--title-overlay-update))
   (if-let* ((zettel (neuron--get-cached-zettel-from-id zid))
             (title  (map-elt zettel 'title)))
