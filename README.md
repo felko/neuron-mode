@@ -1,3 +1,5 @@
+[![MELPA](https://melpa.org/packages/neuron-mode-badge.svg)](https://melpa.org/#/neuron-mode)
+
 # neuron-mode
 
 `neuron-mode` is an Emacs major mode derived from [`markdown-mode`](https://jblevins.org/projects/markdown-mode/)
