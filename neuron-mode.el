@@ -383,7 +383,7 @@ The path is relative to the neuron output directory."
   (interactive)
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
-(defconst neuron-short-link-regex (rx "<" (group (one-or-more alphanumeric)) ">")
+(defconst neuron-short-link-regex (rx "<" (group (one-or-more (or alphanumeric "-" "_"))) ">")
   "Regex mathcing zettel links like <ID>.
 Group 1 is the matched ID.")
 
