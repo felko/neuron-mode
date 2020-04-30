@@ -86,10 +86,16 @@
   :group 'neuron-faces)
 
 (defface neuron-title-overlay-face
-  '((((class color) (min-colors 16)) :foreground "DarkOrange")
-    (((class color)) :foreground "yellow")
+  '((((class color) (min-colors 88) (background dark)) :foreground "LightSalmon1")
+    (((class color) (min-colors 88) (background light)) :foreground "LightSalmon4")
+    ((class color) :foreground "yellow")
     (t :italic t))
   "Face for title overlays displayed next to short links."
+  :group 'neuron-face)
+
+(defface neuron-unknown-face
+  '((t :inherit error))
+  "Face for the 'Unknown' label dislayed next to short links with unknown IDs."
   :group 'neuron-face)
 
 (defvar neuron-zettelkasten neuron-default-zettelkasten-directory
@@ -430,7 +436,7 @@ OV is the overay to setup or update and ZID is the zettel ID."
   (if-let* ((zettel (neuron--get-cached-zettel-from-id zid))
             (title  (map-elt zettel 'title)))
       (overlay-put ov 'after-string (format " %s" (propertize title 'face 'neuron-title-overlay-face)))
-    (overlay-put ov 'after-string (format " %s" "Unknown"))
+    (overlay-put ov 'after-string (format " %s" (propertize "Unknown" 'face 'neuron-unknown-face)))
     (overlay-put ov 'face 'neuron-unknown-zettel-id-face)))
 
 (defun neuron--title-overlay-update (ov after &rest _)
