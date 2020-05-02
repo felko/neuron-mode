@@ -37,6 +37,7 @@
 (require 'json)
 (require 'url-parse)
 (require 'counsel)
+(require 'thingatpt)
 (require 'markdown-mode)
 
 (defgroup neuron nil
@@ -173,7 +174,7 @@ Extract only the result itself, so the query type is lost."
   "Create a new zettel in the current zettelkasten."
   (interactive)
   (when-let* ((title  (if (s-blank-str? (setq-local input (read-string "Title: "))) "Untitled" input))
-              (path   (neuron--run-command (neuron--make-command "new" title)))
+              (path   (neuron--run-command (neuron--make-command "new" "--id-hash" title)))
               (buffer (find-file-noselect path)))
     (and
      (neuron--rebuild-cache)
@@ -255,7 +256,7 @@ the inserted link will either be of the form <ID> or
   "Create a new zettel."
   (interactive)
   (when-let* ((title  (read-string "Title: "))
-              (path   (neuron--run-command (neuron--make-command "new" title)))
+              (path   (neuron--run-command (neuron--make-command "new" "--id-hash" title)))
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (progn
@@ -383,9 +384,20 @@ The path is relative to the neuron output directory."
   (interactive)
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
-(defconst neuron-short-link-regex (rx "<" (group (one-or-more (or alphanumeric "-" "_"))) ">")
+(defconst neuron-short-link-regex
+  (rx "<" (? "z:zettel/") (group (+ (or alphanumeric "-" "_"))) (? "?" (* alphanumeric)) ">")
   "Regex mathcing zettel links like <ID>.
 Group 1 is the matched ID.")
+
+(defun neuron--extract-id-from-partial-url (url)
+  "Extract the ID from a single zettel URL."
+  (let* ((struct (url-generic-parse-url url))
+         (path   (car (url-path-and-query struct)))
+         (type   (url-type struct))
+         (parts  (s-split "/" path)))
+    (pcase (length parts)
+        (1 (when (not type) path))  ; path is ID
+        (2 (when (and (equal type "z") (equal (nth 0 parts) "zettel")) (nth 1 parts))))))
 
 (defun neuron-follow-thing-at-point ()
   "Open the zettel link at point."
@@ -396,7 +408,7 @@ Group 1 is the matched ID.")
        ;; limit to current line
        (max (- (point) (line-beginning-position))
             (- (line-end-position) (point))))
-      (neuron--edit-zettel-from-id (match-string 1))
+      (neuron--edit-zettel-from-id (neuron--extract-id-from-partial-url (match-string 1)))
     ;; markdown links
     (let* ((link   (markdown-link-at-pos (point)))
            (id     (nth 2 link))
@@ -477,7 +489,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (let ((short-link (buffer-substring (overlay-start ov) (overlay-end ov))))
     (when after
       (if (string-match neuron-short-link-regex short-link)
-          (let ((zid (match-string 1 short-link)))
+          (let ((zid (neuron--extract-id-from-partial-url (match-string 1 short-link))))
             (neuron--setup-overlay-from-id ov zid))
         (delete-overlay ov)))))
 
@@ -516,6 +528,10 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (neuron--setup-overlays)
   (add-hook 'after-save-hook #'neuron--setup-overlays t t))
 
+;; <z:zettel/85>
+;; <8768>
+
+(push "z:" thing-at-point-uri-schemes)
 (add-hook 'neuron-mode-hook #'neuron-mode--setup-hooks)
 
 ;;;###autoload
