@@ -27,19 +27,19 @@ invalidate the cache and rebuild it manually, which is done with the
 `neuron-refresh-buffer` command. This will also reload the titles displayed
 next to zettel links (see next paragraph).
 
-##### Reading
+#### Reading
 
 neuron-mode allows you to browse your zettelkasten directly from Emacs.
 Most importantly, neuron links are shown together with their titles so that
 you don't need to read the zettel from the associated HTML file anymore.
 
-##### Navigating
+#### Navigating
 
 neuron links can also be followed using `neuron-follow-thing-at-point`.
 For queries, it will prompt you to select a zettel that match the query
 under the point.
 
-##### Searching
+#### Searching
 
 The `neuron-edit-zettel` will prompt you with the list of zettels, where
 you can search by title, by tag or by ID using ivy.
@@ -47,7 +47,7 @@ you can search by title, by tag or by ID using ivy.
 projectile can also be useful asa complement to neuron-mode since it allows
 you to search the zettelkasten by content.
 
-##### Editing
+#### Editing
 
 You can create new zettels from Emacs, neuron-mode will take care of creating
 the file with a generated hash in the current active zettelkasten.
@@ -60,7 +60,7 @@ To avoid typos in tags which might mess up the organization of your
 zettelkasten, use `neuron-insert-tag` which will allow you to select from
 already existing tags.
 
-##### Using rib
+#### Using rib
 
 Rib commands can be executed from Emacs. Running `neuron-rib-generate` will
 compile your zettelkasten to HTML. This can also be done automatically using
