@@ -1,4 +1,5 @@
 ;;; neuron-mode.el --- Major mode for editing zettelkasten notes using neuron -*- lexical-binding: t; -*-
+
 ;;
 ;; Copyright (C) 2020 felko
 ;;
@@ -69,14 +70,14 @@
   :group 'neuron
   :group 'faces)
 
-(defface neuron-zettel-id-face
+(defface neuron-link-face
   '((((class color) (min-colors 88) (background dark)) :foreground "orange1")
     (((class color) (min-colors 88) (background light)) :foreground "orange3")
     (t :inherit link))
   "Face for zettel IDs in zettels and ivy-read prompts"
   :group 'neuron-faces)
 
-(defface neuron-unknown-zettel-id-face
+(defface neuron-invalid-zettel-id-face
   '((t :inherit error))
   "Face for zettel IDs in zettels and ivy-read prompts"
   :group 'neuron-faces)
@@ -94,12 +95,12 @@
   "Face for title overlays displayed next to short links."
   :group 'neuron-face)
 
-(defface neuron-unknown-face
+(defface neuron-invalid-link-face
   '((t :inherit error))
   "Face for the 'Unknown' label dislayed next to short links with unknown IDs."
   :group 'neuron-face)
 
-(defface neuron-zettel-link-mouse-face
+(defface neuron-link-mouse-face
   '((t :inherit highlight))
   "Face displayed when hovering a zettel short link.")
 
@@ -184,7 +185,7 @@ Extract only the result itself, so the query type is lost."
 
 (defun neuron--style-zettel-id (zid)
   "Style a ZID as shown in the ivy prompt."
-  (propertize (format "<%s>" zid) 'face 'neuron-zettel-id-face))
+  (propertize (format "<%s>" zid) 'face 'neuron-link-face))
 
 (defun neuron--style-tags (tags)
   "Style TAGS as shown in the ivy prompt when selecting a zettel."
@@ -304,7 +305,7 @@ ELEM is a map containing the name of the tag and the number of associated zettel
 
 (defun neuron-select-tag ()
   "Prompt for a tag that is already used in the zettelkasten."
-  (neuron--select-tag-from-query "zquery://tags"))
+  (neuron--select-tag-from-query "z:tags"))
 
 (defun neuron-insert-tag ()
   "Select and insert a tag that is already used in the zettelkasten."
@@ -315,7 +316,7 @@ ELEM is a map containing the name of the tag and the number of associated zettel
   "Select and edit a zettel from those that are tagged by TAGS."
   (interactive (list (neuron-select-tag)))
   (let ((query (mapconcat (lambda (tag) (format "tag=%s" tag)) tags "&")))
-    (neuron--edit-zettel-from-query (format "zquery://search?%s" query))))
+    (neuron--edit-zettel-from-query (format "z:zettels?%s" query))))
 
 (defun neuron--edit-zettel-from-path (path)
   "Open a neuron zettel from PATH."
@@ -349,10 +350,7 @@ is not found."
 
 (defun neuron--edit-zettel-from-query (uri)
   "Select and edit a zettel from a neuron query URI."
-  (let ((struct (url-generic-parse-url uri)))
-    (pcase (url-host struct)
-      ("search" (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
-      ("tags"   (neuron-query-tags (neuron--select-tag-from-query uri))))))
+  (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
 
 (defun neuron--get-current-zettel-id ()
   "Extract the zettel ID of the current file."
@@ -384,10 +382,10 @@ The path is relative to the neuron output directory."
   (interactive)
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
-(defconst neuron-short-link-regex
-  (rx "<" (? "z:zettel/") (group (+ (or alphanumeric "-" "_"))) (? "?" (* alphanumeric)) ">")
-  "Regex mathcing zettel links like <ID>.
-Group 1 is the matched ID.")
+(defconst neuron-link-regex
+  (concat "<\\(\\(?:z:\\)?" thing-at-point-url-path-regexp "\\(?:\\[^\t\n[] \"'<>`{}\\])*\\)?\\)>")
+  "Regex matching zettel links like <URL> or <ID>.
+Group 1 is the matched ID or URL.")
 
 (defun neuron--extract-id-from-partial-url (url)
   "Extract the ID from a single zettel URL."
@@ -396,30 +394,63 @@ Group 1 is the matched ID.")
          (type   (url-type struct))
          (parts  (s-split "/" path)))
     (pcase (length parts)
-        (1 (when (not type) path))  ; path is ID
-        (2 (when (and (equal type "z") (equal (nth 0 parts) "zettel")) (nth 1 parts))))))
+      (1 (when (not type) path))  ; path is ID
+      (2 (when (and (equal type "z") (equal (nth 0 parts) "zettel")) (nth 1 parts))))))
+
+(defun neuron--follow-query (query)
+  "Follow a neuron link from a zettel ID or an URL.
+QUERY is a query object as described in `neuron--parse-query-from-url-or-id'."
+  (let ((url (map-elt query 'url)))
+    (pcase (map-elt query 'type)
+      ('zettel  (neuron--edit-zettel-from-id (map-elt query 'id)))
+      ('zettels (neuron--edit-zettel-from-query url))
+      ('tags    (neuron-query-tags (neuron--select-tag-from-query url))))))
+
+(defun neuron--parse-query-from-url-or-id (url-or-id)
+  "Parse a neuron URL or a raw zettel ID as an object representing the query.
+URL-OR-ID is a string that is meant to be parsed inside neuron links inside
+angle brackets. The query is returned as a map having at least a `'type' field.
+When URL-OR-ID is a raw ID, or that it is an URL having startin with z:zettel,
+the map also has an `'id' field. Whenever URL-OR-ID is an URL and not an ID,
+the map features an `'url' field."
+  (let* ((struct (url-generic-parse-url url-or-id))
+         ;; Ignore the actual query as it is only handled by neuron
+         (path   (car (url-path-and-query struct)))
+         (parts  (s-split "/" path))
+         (type   (url-type struct)))
+    (if (equal type "z")
+        (pcase (car parts)
+          ("zettel"  (when-let ((zid (nth 1 parts)))
+                       `((type . zettel) (url . ,url-or-id) (id . ,zid))))
+          ("zettels" `((type . zettels) (url . ,url-or-id)))
+          ("tags"    `((type . tags) (url . ,url-or-id))))
+      ;; Probably just an ID
+      `((type . zettel) (id . ,path)))))
 
 (defun neuron-follow-thing-at-point ()
   "Open the zettel link at point."
   (interactive)
-  ;; short links (from the `thing-at-point' demo)
+  ;; New links (from the `thing-at-point' demo)
   (if (thing-at-point-looking-at
-       neuron-short-link-regex
+       neuron-link-regex
        ;; limit to current line
        (max (- (point) (line-beginning-position))
             (- (line-end-position) (point))))
-      (neuron--edit-zettel-from-id (neuron--extract-id-from-partial-url (match-string 1)))
-    ;; markdown links
+      (if-let ((query (neuron--parse-query-from-url-or-id (match-string 1))))
+          (neuron--follow-query query)
+        (message "Invalid query"))
+    ;; Old style links
     (let* ((link   (markdown-link-at-pos (point)))
            (id     (nth 2 link))
            (url    (nth 3 link))
            (struct (url-generic-parse-url url))
            (type   (url-type struct)))
       (pcase type
-        ("z"        (neuron--edit-zettel-from-id id))
-        ("zcf"      (neuron--edit-zettel-from-id id))
-        ("zquery"   (neuron--edit-zettel-from-query url))
-        ("zcfquery" (neuron--edit-zettel-from-query url))
+        ((or "z" "zcf") (neuron--edit-zettel-from-id id))
+        ((or "zquery" "zcfquery")
+         (pcase (url-host struct)
+           ("search" (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query url) 'path)))
+           ("tags"   (neuron-query-tags (neuron--select-tag-from-query url)))))
         (_          (markdown-follow-thing-at-point link))))))
 
 (defun neuron-rib-watch ()
@@ -472,36 +503,41 @@ Group 1 is the matched ID.")
 (defun neuron--setup-overlay-from-id (ov zid)
   "Setup a single title overlay from a zettel ID.
 OV is the overay to setup or update and ZID is the zettel ID."
-  (overlay-put ov 'evaporate t)
-  ;; (overlay-put ov 'display zid)
-  (overlay-put ov 'face 'neuron-zettel-id-face)
-  (overlay-put ov 'mouse-face 'neuron-zettel-link-mouse-face)
-  (overlay-put ov 'modification-hooks (list #'neuron--title-overlay-update))
   (if-let* ((zettel (neuron--get-cached-zettel-from-id zid))
             (title  (map-elt zettel 'title)))
       (overlay-put ov 'after-string (format " %s" (propertize title 'face 'neuron-title-overlay-face)))
-    (overlay-put ov 'after-string (format " %s" (propertize "Unknown" 'face 'neuron-unknown-face)))
-    (overlay-put ov 'face 'neuron-unknown-zettel-id-face)))
+    (overlay-put ov 'after-string (format " %s" (propertize "Invalid ID" 'face 'neuron-invalid-zettel-id-face)))
+    (overlay-put ov 'face 'neuron-invalid-link-face)))
 
-(defun neuron--title-overlay-update (ov after &rest _)
+(defun neuron--overlay-update (ov after &rest _)
   "Delete the title overlay OV on modification.
 When AFTER is non-nil, this hook is being called after the update occurs."
-  (let ((short-link (buffer-substring (overlay-start ov) (overlay-end ov))))
+  (let ((link (buffer-substring (overlay-start ov) (overlay-end ov))))
     (when after
-      (if (string-match neuron-short-link-regex short-link)
-          (let ((zid (neuron--extract-id-from-partial-url (match-string 1 short-link))))
-            (neuron--setup-overlay-from-id ov zid))
+      (if (string-match neuron-link-regex link)
+          (if-let ((query (neuron--parse-query-from-url-or-id (match-string 1 link))))
+              (neuron--setup-overlay-from-query ov query)
+            (overlay-put ov 'face 'neuron-invalid-link-face))
         (delete-overlay ov)))))
+
+(defun neuron--setup-overlay-from-query (ov query)
+  "Setup a overlay OV from any zettel link QUERY."
+  (overlay-put ov 'evaporate t)
+  (overlay-put ov 'modification-hooks (list #'neuron--overlay-update))
+  (overlay-put ov 'face 'neuron-link-face)
+  (overlay-put ov 'mouse-face 'neuron-link-mouse-face)
+  (when (equal (map-elt query 'type) 'zettel)
+    (neuron--setup-overlay-from-id ov (map-elt query 'id))))
 
 (defun neuron--setup-overlays ()
   "Setup title overlays on zettel links."
   (remove-overlays)
   (save-excursion
     (goto-char (point-min))
-    (while (re-search-forward neuron-short-link-regex nil t)
-      (let* ((ov    (make-overlay (match-beginning 0) (match-end 0) nil t nil))
-             (zid   (match-string 1)))
-        (neuron--setup-overlay-from-id ov zid)))))
+    (while (re-search-forward neuron-link-regex nil t)
+      (let ((ov    (make-overlay (match-beginning 0) (match-end 0) nil t nil))
+            (query (neuron--parse-query-from-url-or-id (match-string 1))))
+        (neuron--setup-overlay-from-query ov query)))))
 
 (defvar neuron-mode-map nil "Keymap for `neuron-mode'.")
 
