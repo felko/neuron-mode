@@ -583,8 +583,9 @@ When AFTER is non-nil, this hook is being called after the update occurs."
 Throws an user error when it's not."
   (if (not (f-exists? neuron-zettelkasten))
       (user-error "Invalid zettelkasten: %s does not exist" neuron-zettelkasten)
-    (when (not (f-directory? neuron-zettelkasten))
-      (user-error "Invalid zettelkasten: %s is not a directory" neuron-zettelkasten))))
+    (if (not (f-directory? neuron-zettelkasten))
+        (user-error "Invalid zettelkasten: %s is not a directory" neuron-zettelkasten)
+      t)))
 
 ;;;###autoload
 (define-derived-mode neuron-mode markdown-mode "Neuron"
