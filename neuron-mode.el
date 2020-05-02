@@ -394,7 +394,7 @@ The path is relative to the neuron output directory."
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
 (defconst neuron-link-regex
-  (concat "<\\(\\(?:z:\\)?" thing-at-point-url-path-regexp "\\(?:\\[^\t\n[] \"'<>`{}\\])*\\)?\\)>")
+  (concat "<\\(\\(?:z:\\)?" thing-at-point-url-path-regexp "\\(?:\\[^\t\n[]\\\\ \"'<>`{}\\])*\\)?\\)>")
   "Regex matching zettel links like <URL> or <ID>.
 Group 1 is the matched ID or URL.")
 
@@ -522,7 +522,7 @@ the map features an `'url' field."
 (defun neuron--setup-overlay-from-id (ov zid)
   "Setup a single title overlay from a zettel ID.
 OV is the overay to setup or update and ZID is the zettel ID."
-  (if-let* ((zettel (neuron--get-cached-zettel-from-id zid))
+  (if-let* ((zettel (ignore-errors (neuron--get-cached-zettel-from-id zid)))
             (title  (map-elt zettel 'title)))
       (overlay-put ov 'after-string (format " %s" (propertize title 'face 'neuron-title-overlay-face)))
     (overlay-put ov 'after-string (format " %s" (propertize "Invalid ID" 'face 'neuron-invalid-zettel-id-face)))
