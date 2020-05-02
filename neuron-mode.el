@@ -129,7 +129,7 @@ returned as a string."
          (output    (nth 1 result)))
     (if (equal exit-code 0)
         (string-trim-right output)
-      (and (message "Command \"%s\" exited with code %d: %s" cmd exit-code output)
+      (and (user-error "Command \"%s\" exited with code %d: %s" cmd exit-code output)
            nil))))
 
 (defun neuron--read-query-result (output)
@@ -161,6 +161,7 @@ Extract only the result itself, so the query type is lost."
 (defun neuron-refresh-buffer ()
   "Regenerate the zettel cache and the title overlays in the current buffer."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (neuron--rebuild-cache)
   (neuron--setup-overlays)
   (message "Regenerated zettel cache"))
@@ -174,6 +175,7 @@ Extract only the result itself, so the query type is lost."
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (when-let* ((title  (if (s-blank-str? (setq-local input (read-string "Title: "))) "Untitled" input))
               (path   (neuron--run-command (neuron--make-command "new" "--id-hash" title)))
               (buffer (find-file-noselect path)))
@@ -225,11 +227,13 @@ PROMPT is the prompt passed to `ivy-read'."
 (defun neuron-select-zettel (&optional prompt)
   "Find a zettel in the current zettelkasten.
 PROMPT is the prompt passed to `ivy-read'."
+  (neuron-check-if-zettelkasten-exists)
   (neuron--select-zettel-from-cache prompt))
 
 (defun neuron-edit-zettel ()
   "Select and edit a zettel from the currently active zettelkasten."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (let* ((zettel (neuron-select-zettel "Edit zettel: "))
          (path   (map-elt zettel 'path))
          (buffer (find-file-noselect path)))
@@ -251,11 +255,13 @@ the inserted link will either be of the form <ID> or
 (defun neuron-insert-zettel-link ()
   "Insert a markdown hypertext link to another zettel."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (neuron--insert-zettel-link-from-id (map-elt (neuron-select-zettel) 'id)))
 
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (when-let* ((title  (read-string "Title: "))
               (path   (neuron--run-command (neuron--make-command "new" "--id-hash" title)))
               (id     (f-base (f-no-ext path)))
@@ -305,16 +311,19 @@ ELEM is a map containing the name of the tag and the number of associated zettel
 
 (defun neuron-select-tag ()
   "Prompt for a tag that is already used in the zettelkasten."
+  (neuron-check-if-zettelkasten-exists)
   (neuron--select-tag-from-query "z:tags"))
 
 (defun neuron-insert-tag ()
   "Select and insert a tag that is already used in the zettelkasten."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (insert (neuron-select-tag)))
 
 (defun neuron-query-tags (&rest tags)
   "Select and edit a zettel from those that are tagged by TAGS."
   (interactive (list (neuron-select-tag)))
+  (neuron-check-if-zettelkasten-exists)
   (let ((query (mapconcat (lambda (tag) (format "tag=%s" tag)) tags "&")))
     (neuron--edit-zettel-from-query (format "z:zettels?%s" query))))
 
@@ -339,8 +348,7 @@ is not found."
       zettel
     (if failed
         (neuron--get-current-zettel-id id t)
-      (message "Cannot find zettel with ID %s" id)
-      nil)))
+      (user-error "Cannot find zettel with ID %s" id))))
 
 (defun neuron--edit-zettel-from-id (id)
   "Open a neuron zettel from ID."
@@ -370,16 +378,19 @@ The path is relative to the neuron output directory."
 (defun neuron-open-zettel ()
   "Select a zettel and open the associated HTML file."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (neuron--open-zettel-from-id (map-elt (neuron-select-zettel "Open zettel: ") 'id)))
 
 (defun neuron-open-index ()
   "Open the index.html file."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (neuron--open-page "index.html"))
 
 (defun neuron-open-current-zettel ()
   "Open the current zettel's HTML file in the browser."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
 (defconst neuron-link-regex
@@ -430,6 +441,7 @@ the map features an `'url' field."
 (defun neuron-follow-thing-at-point ()
   "Open the zettel link at point."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   ;; New links (from the `thing-at-point' demo)
   (if (thing-at-point-looking-at
        neuron-link-regex
@@ -438,7 +450,7 @@ the map features an `'url' field."
             (- (line-end-position) (point))))
       (if-let ((query (neuron--parse-query-from-url-or-id (match-string 1))))
           (neuron--follow-query query)
-        (message "Invalid query"))
+        (user-error "Invalid query"))
     ;; Old style links
     (let* ((link   (markdown-link-at-pos (point)))
            (id     (nth 2 link))
@@ -456,42 +468,49 @@ the map features an `'url' field."
 (defun neuron-rib-watch ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (if (neuron--run-rib-process "-w")
       (message "Watching %s for changes..." neuron-zettelkasten)
-    (message "Rib command failed")))
+    (user-error "Failed to watch %s" neuron-zettelkasten)))
 
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (if (neuron--run-rib-process "-wS")
       (message "Started web application on localhost:8080")
-    (message "Rib command failed")))
+    (user-error "Failed to run rib server on localhost:8080")))
 
 (defun neuron-rib-generate ()
   "Do an one-off generation of the web interface of the zettelkasten."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (if (neuron--run-rib-compile)
       (message "Generated HTML files")
-    (message "Rib command failed")))
+    (user-error "Failed to generate %s" neuron-zettelkasten)))
 
 (defun neuron-rib-open-page (page)
   "Open the web-application at page PAGE."
+  (neuron-check-if-zettelkasten-exists)
   (browse-url (format "http://localhost:8080/%s" page)))
 
 (defun neuron-rib-open-z-index ()
   "Open the web application in the web browser at z-index."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (neuron-rib-open-page "z-index.html"))
 
 (defun neuron-rib-open-current-zettel ()
   "Open the web application in the web browser at the current zettel note."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (let ((zid (f-base (buffer-file-name))))
     (neuron-rib-open-page (concat zid ".html"))))
 
 (defun neuron-rib-open-zettel ()
   "Open a zettel in the web application."
   (interactive)
+  (neuron-check-if-zettelkasten-exists)
   (let ((zettel (neuron-select-zettel)))
     (neuron-rib-open-page (concat (map-elt zettel 'id) ".html"))))
 
@@ -557,25 +576,29 @@ When AFTER is non-nil, this hook is being called after the update occurs."
 (defvar neuron-mode-hook nil
   "Hook run when entering `neuron-mode'.")
 
-(defun neuron-mode--setup-hooks ()
-  "Initialize all local hooks in `neuron-mode'."
-  (when neuron-generate-on-save
-    (add-hook 'after-save-hook #'neuron-rib-generate t t))
-  (neuron--setup-overlays)
-  (add-hook 'after-save-hook #'neuron--setup-overlays t t))
-
-;; <z:zettel/85>
-;; <8768>
-
 (push "z:" thing-at-point-uri-schemes)
-(add-hook 'neuron-mode-hook #'neuron-mode--setup-hooks)
+
+(defun neuron-check-if-zettelkasten-exists ()
+  "Check if `neuron-zettelkasten' is an existing directory.
+Throws an user error when it's not."
+  (if (not (f-exists? neuron-zettelkasten))
+      (user-error "Invalid zettelkasten: %s does not exist" neuron-zettelkasten)
+    (when (not (f-directory? neuron-zettelkasten))
+      (user-error "Invalid zettelkasten: %s is not a directory" neuron-zettelkasten))))
 
 ;;;###autoload
 (define-derived-mode neuron-mode markdown-mode "Neuron"
   "A major mode to edit Zettelkasten notes with neuron."
+  (neuron-check-if-zettelkasten-exists)
+  (when neuron-generate-on-save
+    (add-hook 'after-save-hook #'neuron-rib-generate t t))
+  (add-hook 'after-save-hook #'neuron--setup-overlays t t)
+  (neuron--setup-overlays)
+  (neuron--rebuild-cache)
   (use-local-map neuron-mode-map))
 
-(neuron--rebuild-cache)
+(when (f-directory? neuron-zettelkasten)
+  (neuron--rebuild-cache))
 
 (provide 'neuron-mode)
 
