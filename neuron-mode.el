@@ -154,7 +154,7 @@ Extract only the result itself, so the query type is lost."
 
 (defun neuron--rebuild-cache ()
   "Rebuild the zettel cache with the current zettelkasten."
-  (let ((zettels (neuron--query-url-command "zquery://search"))
+  (let ((zettels (neuron--query-url-command "z:zettels"))
         (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'id)) zettel))))
     (setq neuron--zettel-cache (mapcar assoc-id zettels))))
 
