@@ -88,10 +88,10 @@
   :group 'neuron-faces)
 
 (defface neuron-title-overlay-face
-  '((((class color) (min-colors 88) (background dark)) :foreground "LightSalmon1")
-    (((class color) (min-colors 88) (background light)) :foreground "LightSalmon4")
-    ((class color) :foreground "yellow")
-    (t :italic t))
+  '((((class color) (min-colors 88) (background dark)) :foreground "MistyRose2")
+    (((class color) (min-colors 88) (background light)) :foreground "LightSlateGrey")
+    ((class color) :foreground "grey")
+    (t :inherit italic))
   "Face for title overlays displayed next to short links."
   :group 'neuron-face)
 
@@ -394,7 +394,7 @@ The path is relative to the neuron output directory."
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
 (defconst neuron-link-regex
-  (concat "<\\(\\(?:z:\\)?" thing-at-point-url-path-regexp "\\(?:\\[^\t\n[]\\\\ \"'<>`{}\\])*\\)?\\)>")
+  (concat "<\\(z:" thing-at-point-url-path-regexp "\\|[A-Za-z0-9-_]+\\(?:\?[^][\t\n {}]*\\)?\\)>")
   "Regex matching zettel links like <URL> or <ID>.
 Group 1 is the matched ID or URL.")
 
@@ -525,7 +525,7 @@ OV is the overay to setup or update and ZID is the zettel ID."
   (if-let* ((zettel (ignore-errors (neuron--get-cached-zettel-from-id zid)))
             (title  (map-elt zettel 'title)))
       (overlay-put ov 'after-string (format " %s" (propertize title 'face 'neuron-title-overlay-face)))
-    (overlay-put ov 'after-string (format " %s" (propertize "Invalid ID" 'face 'neuron-invalid-zettel-id-face)))
+    (overlay-put ov 'after-string (format " %s" (propertize "Unknown ID" 'face 'neuron-invalid-zettel-id-face)))
     (overlay-put ov 'face 'neuron-invalid-link-face)))
 
 (defun neuron--overlay-update (ov after &rest _)
