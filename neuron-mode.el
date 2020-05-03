@@ -394,7 +394,7 @@ The path is relative to the neuron output directory."
   (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
 
 (defconst neuron-link-regex
-  (concat "<\\(z:" thing-at-point-url-path-regexp "\\|[A-Za-z0-9-_]+\\(?:\?[^][\t\n {}]*\\)?\\)>")
+  (concat "<\\(z:" thing-at-point-url-path-regexp "\\|[A-Za-z0-9-_]+\\(?:\?[^][\t\n\\ {}]*\\)?\\)>")
   "Regex matching zettel links like <URL> or <ID>.
 Group 1 is the matched ID or URL.")
 
