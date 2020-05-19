@@ -183,7 +183,7 @@ Extract only the result itself, so the query type is lost."
      (neuron--rebuild-cache)
      (pop-to-buffer-same-window buffer)
      (neuron-mode)
-     (message (concat "Created " path)))))
+     (message (concat "Created " (f-filename path))))))
 
 (defun neuron--style-zettel-id (zid)
   "Style a ZID as shown in the ivy prompt."
@@ -207,7 +207,7 @@ Extract only the result itself, so the query type is lost."
 
 (defun neuron--select-zettel-from-list (zettels &optional prompt)
   "Select a zettel from a given list.
-ZETTELS is a list of maps containing zettels (keys: id, title, tags, path)
+ZETTELS is a list of maps containing zettels (keys: id, title, day, tags, path)
 PROMPT is the prompt passed to `ivy-read'."
   (let* ((selection
           (ivy-read (or prompt "Select Zettel: ")
@@ -218,7 +218,7 @@ PROMPT is the prompt passed to `ivy-read'."
 (defun neuron--select-zettel-from-cache (&optional prompt)
   "Select a zettel from the current cache.
 PROMPT is the prompt passed to `ivy-read'."
-  (neuron--select-zettel-from-list neuron--zettel-cache prompt))
+  (neuron--select-zettel-from-list (map-values neuron--zettel-cache) prompt))
 
 (defun neuron--select-zettel-from-query (uri)
   "Select a zettel from the match of URI."
@@ -271,7 +271,7 @@ the inserted link will either be of the form <ID> or
       (neuron--insert-zettel-link-from-id id)
       (pop-to-buffer-same-window buffer)
       (neuron-mode)
-      (message (concat "Created " path)))))
+      (message (concat "Created " (f-filename path))))))
 
 (defun neuron--flatten-tag-node (node &optional root)
   "Flatten NODE into a list of tags.
