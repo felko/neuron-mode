@@ -6,7 +6,7 @@ neuron-mode is an Emacs major mode derived from [markdown-mode](https://jblevins
 to edit notes using the [neuron](https://neuron.zettel.page/) Zettelkasten
 manager.
 
-[![asciicast](https://asciinema.org/a/329911.svg)](https://asciinema.org/a/329911)
+<p align="center"><a href="https://asciinema.org/a/329911"><img src="https://asciinema.org/a/329911.svg" alt="drawing" width="600"/></a></br>neuron-mode demo in [doom emacs](https://github.com/hlissner/doom-emacs)</p>
 
 ## Installation
 
