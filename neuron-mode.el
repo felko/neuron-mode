@@ -241,6 +241,26 @@ PROMPT is the prompt passed to `ivy-read'."
      (pop-to-buffer-same-window buffer)
      (neuron-mode))))
 
+(defun neuron--insert-static-link-action (path)
+  "Insert a link to file PATH relative to the static directory."
+  (if (f-descendant-of? path (f-join "/" neuron-zettelkasten "static"))
+      (insert (format "[](%s)" (f-relative path neuron-zettelkasten)))
+    (when (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static?" path neuron-zettelkasten))
+      (let ((copied-path (f-join "/" neuron-zettelkasten "static" (f-filename path))))
+        (copy-file path copied-path)
+        (insert (format "[](%s)" (f-relative copied-path neuron-zettelkasten)))))))
+
+(defun neuron-insert-static-link ()
+  "Insert a link to a file in the static directory."
+  (interactive)
+  (neuron-check-if-zettelkasten-exists)
+  (let ((default-directory (f-join "/" neuron-zettelkasten "static")))
+    (ivy-read "Select static file: " #'read-file-name-internal
+              :matcher #'counsel--find-file-matcher
+              :action #'neuron--insert-static-link-action
+              :keymap counsel-find-file-map
+              :caller 'neuron-insert-static-link)))
+
 (defun neuron--insert-zettel-link-from-id (id)
   "Insert a zettel link.
 Depending on the value of `neuron-use-short-links',
@@ -569,6 +589,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (define-key neuron-mode-map (kbd "C-c C-S-t") #'neuron-query-tags)
   (define-key neuron-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
   (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
+  (define-key neuron-mode-map (kbd "C-c C-s")   #'neuron-insert-static-link)
   (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
   (define-key neuron-mode-map (kbd "C-c C-S-r") #'neuron-refresh-buffer)
   (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
