@@ -65,6 +65,27 @@
   :type  'boolean
   :safe  'booleanp)
 
+(defcustom neuron-daily-note-id-format "%Y-%m-%d"
+  "Format of daily note IDs.
+When creating a daily note with `neuron-open-daily-notes' this format
+string will be run through `format-time-string' to create a zettel
+ID."
+  :group 'neuron
+  :type  'string)
+
+(defcustom neuron-daily-note-title-format "%x"
+  "Format of daily note titles.
+When creating a daily note with `neuron-open-daily-notes' this format
+string will be run through `format-time-string' to create the title
+of the zettel."
+  :group 'neuron
+  :type  'string)
+
+(defcustom neuron-daily-note-tags (list "journal/daily")
+  "List of tags to add to a newly created daily notes file."
+  :group 'neuron
+  :type  '(repeat string))
+
 (defgroup neuron-faces nil
   "Faces used in neuron-mode."
   :group 'neuron
@@ -184,6 +205,26 @@ Extract only the result itself, so the query type is lost."
      (pop-to-buffer-same-window buffer)
      (neuron-mode)
      (message (concat "Created " (f-filename path))))))
+
+;;;###autoload
+(defun neuron-open-daily-notes ()
+  "Create or open today's daily notes."
+  (interactive)
+  (neuron-check-if-zettelkasten-exists)
+  (let* ((today (current-time))
+         (zid (format-time-string neuron-daily-note-id-format today))
+         (title (format-time-string neuron-daily-note-title-format today))
+         (exists (alist-get 'path (neuron--query-zettel-from-id zid)))
+         (path (or exists (neuron--run-command
+                           (neuron--make-command "new" "--id" zid title))))
+         (buffer (and path (find-file-noselect path))))
+    (when buffer
+     (neuron--rebuild-cache)
+     (pop-to-buffer-same-window buffer)
+     (neuron-mode)
+     (unless exists
+       (dolist (tag neuron-daily-note-tags)
+         (neuron-add-tag tag))))))
 
 (defun neuron--style-zettel-id (zid)
   "Style a ZID as shown in the ivy prompt."
@@ -328,6 +369,35 @@ ELEM is a map containing the name of the tag and the number of associated zettel
                     :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
                     :caller 'neuron-select-tag)))
     (get-text-property 0 'tag selection)))
+
+(defun neuron--navigate-to-metadata-field (field)
+  "Move point to the character after metadata FIELD.
+If FIELD does not exist it is created."
+  (goto-char (point-min))
+  (let* ((delim (rx bol "---" (0+ blank) eol))
+         (begin (if (looking-at-p delim) (point)
+                  (save-excursion (insert "---\n---\n"))
+                  (point)))
+         (end (save-excursion
+                (goto-char begin)
+                (forward-line)
+                (while (not (looking-at-p delim))
+                  (forward-line))
+                (point)))
+         (fieldre (rx-to-string `(: bol (0+ blank) ,field ":" (0+ blank)))))
+    (unless (search-forward-regexp fieldre end t)
+      (goto-char end)
+      (forward-line -1)
+      (end-of-line)
+      (insert (concat "\n" field ": ")))))
+
+(defun neuron-add-tag (tag)
+  "Add TAG to the list of tags.
+When called interactively this command prompts for a tag."
+  (interactive (list (neuron-select-tag)))
+  (save-excursion
+    (neuron--navigate-to-metadata-field "tags")
+    (insert (concat "\n  - " tag))))
 
 (defun neuron-select-tag ()
   "Prompt for a tag that is already used in the zettelkasten."
