@@ -84,12 +84,13 @@ the web app rather than local files (respectively
 | :----------------------------- | :-------------- | :---------------------------------------------------------------------- |
 | `neuron-new-zettel`            | `C-c C-z`       | Create a new zettel and open it for edition                             |
 | `neuron-edit-zettel`           | `C-c C-e`       | Select an existing zettel and open it for edition                       |
-| `neuron-insert-tag`            | `C-c C-t`       | Select and insert a tag                                                 |
+| `neuron-add-tag`               | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block     |
 | `neuron-query-tag`             | `C-c C-S-t`     | Select a tag and then a zettel with that tag                            |
 | `neuron-open-current-zettel`   | `C-c C-r`       | Open the current zettel's generated HTML file in the browser            |
 | `neuron-insert-zettel-link`    | `C-c C-l`       | Search a zettel by content and insert the link at point                 |
 | `neuron-insert-new-zettel`     | `C-c C-S-l`     | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`             |
 | `neuron-insert-static-link`    | `C-c C-s`       | Insert a link to a selected file in the static directory                |
+|  `neuron-open-daily-notes`     | N/A             | Open today's notes if it exists, or create it otherwise                 |
 | `neuron-refresh-buffer`        | `C-c C-S-r`     | Regenerate the zettel cache and title overlays in the current buffer    |
 | `neuron-follow-thing-at-point` | `C-c C-o`       | Override `markdown-follow-thing-at-point` to handle zettel URI protocol |
 | `neuron-select-zettelkasten`   | N/A             | Set the current active Zettelkasten in which all of these command occur |
@@ -107,9 +108,12 @@ the web app rather than local files (respectively
 - `neuron-generate-on-save` (default: `nil`)
   Generates the site when saving a note. Opens a compilation buffer
   (`neuron-rib-generate`)
-- `neuron-use-short-links` (default: `t`)
-  Controls whether inserted zettel links are in the form `[ID](z:/)` or
-  `<ID>`.
+- `neuron-daily-note-id-format` (default: `"%Y-%m-%d"`)
+  Format that controls the filenames of newly created daily notes
+- `neuron-daily-note-title-format` (default: `"%x"`)
+  The format of titles for new daily notes
+- `neuron-daily-note-tags` (default: `(list "journal/daily")`)
+  The default tag of daily notes
 
 ## Appendix: doom-emacs configuration
 
