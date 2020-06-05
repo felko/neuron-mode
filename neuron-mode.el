@@ -111,7 +111,7 @@ of the zettel."
 (defface neuron-title-overlay-face
   '((((class color) (min-colors 88) (background dark)) :foreground "MistyRose2")
     (((class color) (min-colors 88) (background light)) :foreground "LightSlateGrey")
-    ((class color) :foreground "grey")
+    (((class color) :foreground "grey"))
     (t :inherit italic))
   "Face for title overlays displayed next to short links."
   :group 'neuron-face)
