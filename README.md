@@ -80,25 +80,25 @@ the web app rather than local files (respectively
 
 ### Function list
 
-| Command                        | Default binding | Description                                                             |
-| :----------------------------- | :-------------- | :---------------------------------------------------------------------- |
-| `neuron-new-zettel`            | `C-c C-z`       | Create a new zettel and open it for edition                             |
-| `neuron-edit-zettel`           | `C-c C-e`       | Select an existing zettel and open it for edition                       |
-| `neuron-add-tag`               | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block     |
-| `neuron-query-tag`             | `C-c C-S-t`     | Select a tag and then a zettel with that tag                            |
-| `neuron-open-current-zettel`   | `C-c C-r`       | Open the current zettel's generated HTML file in the browser            |
-| `neuron-insert-zettel-link`    | `C-c C-l`       | Search a zettel by content and insert the link at point                 |
-| `neuron-insert-new-zettel`     | `C-c C-S-l`     | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`             |
-| `neuron-insert-static-link`    | `C-c C-s`       | Insert a link to a selected file in the static directory                |
-|  `neuron-open-daily-notes`     | N/A             | Open today's notes if it exists, or create it otherwise                 |
-| `neuron-refresh-buffer`        | `C-c C-S-r`     | Regenerate the zettel cache and title overlays in the current buffer    |
-| `neuron-follow-thing-at-point` | `C-c C-o`       | Override `markdown-follow-thing-at-point` to handle zettel URI protocol |
-| `neuron-select-zettelkasten`   | N/A             | Set the current active Zettelkasten in which all of these command occur |
-| `neuron-rib-generate`          | N/A             | Perform a one-off generation of the site                                |
-| `neuron-rib-serve`             | N/A             | Start the wep application on `localhost:8080`                           |
-| `neuron-rib-open-z-index`      | N/A             | Open the web application at `localhost:8080/z-index.html`               |
-| `neuron-rib-open-zettel`       | N/A             | Select and open a zettel note in the web appliation                     |
-| `neuron-rib-kill`              | N/A             | Kill the web application process                                        |
+| Command                        | Default binding | Description                                                               |
+| :----------------------------- | :-------------- | :------------------------------------------------------------------------ |
+| `neuron-new-zettel`            | `C-c C-z`       | Create a new zettel and open it for edition                               |
+| `neuron-edit-zettel`           | `C-c C-e`       | Select an existing zettel and open it for edition                         |
+| `neuron-add-tag`               | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block       |
+| `neuron-query-tag`             | `C-c C-S-t`     | Select a tag and then a zettel with that tag                              |
+| `neuron-open-current-zettel`   | `C-c C-r`       | Open the current zettel's generated HTML file in the browser              |
+| `neuron-insert-zettel-link`    | `C-c C-l`       | Search a zettel by content and insert the link at point                   |
+| `neuron-insert-new-zettel`     | `C-c C-S-l`     | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`               |
+| `neuron-insert-static-link`    | `C-c C-s`       | Insert a link to a selected file in the static directory                  |
+| `neuron-open-daily-notes`      | N/A             | Open today's notes if it exists, or create it otherwise                   |
+| `neuron-refresh`               | `C-c C-S-r`     | Regenerate the zettel cache and title overlays in all neuron-mode buffers |
+| `neuron-follow-thing-at-point` | `C-c C-o`       | Override `markdown-follow-thing-at-point` to handle zettel URI protocol   |
+| `neuron-select-zettelkasten`   | N/A             | Set the current active Zettelkasten in which all of these command occur   |
+| `neuron-rib-generate`          | N/A             | Perform a one-off generation of the site                                  |
+| `neuron-rib-serve`             | N/A             | Start the wep application on `localhost:8080`                             |
+| `neuron-rib-open-z-index`      | N/A             | Open the web application at `localhost:8080/z-index.html`                 |
+| `neuron-rib-open-zettel`       | N/A             | Select and open a zettel note in the web appliation                       |
+| `neuron-rib-kill`              | N/A             | Kill the web application process                                          |
 
 ## Customization
 
