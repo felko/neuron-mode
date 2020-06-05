@@ -197,7 +197,8 @@ Extract only the result itself, so the query type is lost."
   "Create a new zettel in the current zettelkasten."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (when-let* ((title  (if (s-blank-str? (setq-local input (read-string "Title: "))) "Untitled" input))
+  (when-let* ((input  (read-string "Title: "))
+              (title  (if (s-blank-str? input) "Untitled" input))
               (path   (neuron--run-command (neuron--make-command "new" "--id-hash" title)))
               (buffer (find-file-noselect path)))
     (and
@@ -427,18 +428,16 @@ When called interactively this command prompts for a tag."
 Returns a map containing its title, tag and full path."
   (neuron--read-query-result (neuron--run-command (neuron--make-command "query" "--id" id))))
 
-(defun neuron--get-cached-zettel-from-id (id &optional failed)
-  "Fetch a zettel from the cache from its ID.
-When FAILED is non-nil, the cache is regenerated first.
+(defun neuron--get-cached-zettel-from-id (id &optional retry)
+  "Fetch a cached zettel from its ID.
+When RETRY is nil, the cache is regenerated first and queried.
 This is called internally to automatically refresh the cache when the ID
 is not found."
-  (when failed
-    (neuron--rebuild-cache))
-  (if-let ((zettel (map-elt neuron--zettel-cache (intern id))))
-      zettel
-    (if failed
-        (neuron--get-current-zettel-id id t)
-      (user-error "Cannot find zettel with ID %s" id))))
+  (or (map-elt neuron--zettel-cache (intern id))
+      (when retry
+        (neuron--rebuild-cache)
+        (or (map-elt neuron--zettel-cache (intern id))
+            (user-error "Cannot find zettel with ID %s" id)))))
 
 (defun neuron--edit-zettel-from-id (id)
   "Open a neuron zettel from ID."
