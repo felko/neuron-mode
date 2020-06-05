@@ -438,9 +438,9 @@ Returns a map containing its title, tag and full path."
 
 (defun neuron--get-cached-zettel-from-id (id &optional retry)
   "Fetch a cached zettel from its ID.
-When RETRY is nil, the cache is regenerated first and queried.
-This is called internally to automatically refresh the cache when the ID
-is not found."
+When RETRY is non-nil and that the ID wasn't found, the cache is regenerated
+and queried a second time. This is called internally to automatically refresh
+the cache when the ID is not found."
   (or (map-elt neuron--zettel-cache (intern id))
       (when retry
         (neuron--rebuild-cache)
