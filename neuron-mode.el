@@ -33,13 +33,14 @@
 
 ;;; Code:
 
-(require 'f)
-(require 'subr-x)
-(require 'json)
-(require 'url-parse)
 (require 'counsel)
-(require 'thingatpt)
+(require 'f)
+(require 'json)
 (require 'markdown-mode)
+(require 'subr-x)
+(require 'seq)
+(require 'thingatpt)
+(require 'url-parse)
 
 (defgroup neuron nil
   "A major mode for editing Zettelkasten notes with neuron."
@@ -179,12 +180,19 @@ Extract only the result itself, so the query type is lost."
         (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'id)) zettel))))
     (setq neuron--zettel-cache (mapcar assoc-id zettels))))
 
-(defun neuron-refresh-buffer ()
-  "Regenerate the zettel cache and the title overlays in the current buffer."
+(defun neuron--list-buffers ()
+  "Return the list of all open buffers in which neuron-mode is active."
+  (let ((is-neuron-buffer (lambda (buffer) (with-current-buffer buffer (eq major-mode 'neuron-mode)))))
+    (seq-filter is-neuron-buffer (buffer-list))))
+
+(defun neuron-refresh ()
+  "Regenerate the zettel cache and the title overlays in all neuron-mode buffers."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
   (neuron--rebuild-cache)
-  (neuron--setup-overlays)
+  (mapcar
+   (lambda (buffer) (with-current-buffer buffer (neuron--setup-overlays)))
+   (neuron--list-buffers))
   (message "Regenerated zettel cache"))
 
 (defun neuron-select-zettelkasten ()
@@ -220,12 +228,12 @@ Extract only the result itself, so the query type is lost."
                            (neuron--make-command "new" "--id" zid title))))
          (buffer (and path (find-file-noselect path))))
     (when buffer
-     (neuron--rebuild-cache)
-     (pop-to-buffer-same-window buffer)
-     (neuron-mode)
-     (unless exists
-       (dolist (tag neuron-daily-note-tags)
-         (neuron-add-tag tag))))))
+      (neuron--rebuild-cache)
+      (pop-to-buffer-same-window buffer)
+      (neuron-mode)
+      (unless exists
+        (dolist (tag neuron-daily-note-tags)
+          (neuron-add-tag tag))))))
 
 (defun neuron--style-zettel-id (zid)
   "Style a ZID as shown in the ivy prompt."
@@ -660,7 +668,6 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-s")   #'neuron-insert-static-link)
   (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
-  (define-key neuron-mode-map (kbd "C-c C-S-r") #'neuron-refresh-buffer)
   (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
 
 (defvar neuron-mode-hook nil
