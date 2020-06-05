@@ -642,6 +642,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (overlay-put ov 'modification-hooks (list #'neuron--overlay-update))
   (overlay-put ov 'face 'neuron-link-face)
   (overlay-put ov 'mouse-face 'neuron-link-mouse-face)
+  (overlay-put ov 'keymap neuron-mode-mouse-map)
   (when (equal (map-elt query 'type) 'zettel)
     (neuron--setup-overlay-from-id ov (map-elt query 'id))))
 
@@ -668,7 +669,10 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-s")   #'neuron-insert-static-link)
   (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
-  (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point))
+  (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point)
+
+  (setq neuron-mode-mouse-map (make-sparse-keymap))
+  (define-key neuron-mode-mouse-map [mouse-1]   #'neuron-follow-thing-at-point))
 
 (defvar neuron-mode-hook nil
   "Hook run when entering `neuron-mode'.")
