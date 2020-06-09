@@ -369,15 +369,18 @@ ELEM is a map containing the name of the tag and the number of associated zettel
          (display-count (propertize (format "(%d)" count) 'face 'shadow)))
     (propertize (format "%s %s" tag display-count) 'tag tag 'count count)))
 
-(defun neuron--select-tag-from-query (uri)
-  "Prompt for a tag that is matched by the zquery URI."
+(defun neuron--select-tag-from-query (uri &optional require-match)
+  "Prompt for a tag that is matched by the zquery URI.
+If REQUIRE-MATCH is non-nil require user input to match an existing
+tag."
   (let* ((tags (neuron--flatten-tag-tree (neuron--query-url-command uri)))
          (selection
           (ivy-read "Select tag: "
                     (mapcar #'neuron--propertize-tag tags)
                     :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
-                    :caller 'neuron-select-tag)))
-    (get-text-property 0 'tag selection)))
+                    :caller 'neuron-select-tag
+                    :require-match require-match)))
+    (or (get-text-property 0 'tag selection) selection)))
 
 (defun neuron--navigate-to-metadata-field (field)
   "Move point to the character after metadata FIELD.
@@ -406,12 +409,15 @@ When called interactively this command prompts for a tag."
   (interactive (list (neuron-select-tag)))
   (save-excursion
     (neuron--navigate-to-metadata-field "tags")
-    (insert (concat "\n  - " tag))))
+    (insert (concat "\n  - " tag)))
+  (neuron--rebuild-cache))
 
-(defun neuron-select-tag ()
-  "Prompt for a tag that is already used in the zettelkasten."
+(defun neuron-select-tag (&optional require-match)
+  "Prompt for a tag that is already used in the zettelkasten.
+If REQUIRE-MATCH is non-nil require user input to match an existing
+tag."
   (neuron-check-if-zettelkasten-exists)
-  (neuron--select-tag-from-query "z:tags"))
+  (neuron--select-tag-from-query "z:tags" require-match))
 
 (defun neuron-insert-tag ()
   "Select and insert a tag that is already used in the zettelkasten."
@@ -421,7 +427,7 @@ When called interactively this command prompts for a tag."
 
 (defun neuron-query-tags (&rest tags)
   "Select and edit a zettel from those that are tagged by TAGS."
-  (interactive (list (neuron-select-tag)))
+  (interactive (list (neuron-select-tag t)))
   (neuron-check-if-zettelkasten-exists)
   (let ((query (mapconcat (lambda (tag) (format "tag=%s" tag)) tags "&")))
     (neuron--edit-zettel-from-query (format "z:zettels?%s" query))))
