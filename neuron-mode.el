@@ -246,24 +246,26 @@ Extract only the result itself, so the query type is lost."
                   (neuron--style-tags (map-elt zettel 'tags)))))
     (propertize display 'zettel zettel)))
 
-(defun neuron--select-zettel-from-list (zettels &optional prompt)
+(defun neuron--select-zettel-from-list (zettels &optional prompt require-match)
   "Select a zettel from a given list.
 ZETTELS is a list of maps containing zettels (keys: id, title, day, tags, path)
-PROMPT is the prompt passed to `ivy-read'."
+PROMPT is the prompt passed to `ivy-read'.  When REQUIRE-MATCH is
+non-nil require the input to match an existing zettel."
   (let* ((selection
           (ivy-read (or prompt "Select Zettel: ")
                     (mapcar #'neuron--propertize-zettel zettels)
-                    :caller 'neuron--select-zettel-from-list)))
-    (get-text-property 0 'zettel selection)))
+                    :caller 'neuron--select-zettel-from-list
+                    :require-match require-match)))
+    (or (get-text-property 0 'zettel selection) selection)))
 
 (defun neuron--select-zettel-from-cache (&optional prompt)
   "Select a zettel from the current cache.
 PROMPT is the prompt passed to `ivy-read'."
-  (neuron--select-zettel-from-list (map-values neuron--zettel-cache) prompt))
+  (neuron--select-zettel-from-list (map-values neuron--zettel-cache) prompt t))
 
 (defun neuron--select-zettel-from-query (uri)
   "Select a zettel from the match of URI."
-  (neuron--select-zettel-from-list (neuron--query-url-command uri)))
+  (neuron--select-zettel-from-list (neuron--query-url-command uri) nil t))
 
 (defun neuron-select-zettel (&optional prompt)
   "Find a zettel in the current zettelkasten.
@@ -333,6 +335,30 @@ the inserted link will either be of the form <ID> or
       (pop-to-buffer-same-window buffer)
       (neuron-mode)
       (message (concat "Created " (f-filename path))))))
+
+(defun neuron-create-and-insert-zettel-link (no-prompt)
+  "Insert a markdown hypertext link to another zettel.
+If the selected zettel does not exist it will be created.  When
+NO-PROMPT is non-nil do not prompt when creating a new zettel."
+  (interactive "P")
+  (neuron-check-if-zettelkasten-exists)
+  (let* ((selection
+         (neuron--select-zettel-from-list
+          (map-values neuron--zettel-cache)))
+         (id (and (listp selection) (alist-get 'id selection))))
+    (pcase selection
+      ;; Existing zettel:
+      ((guard id)
+       (neuron--insert-zettel-link-from-id id))
+      ;; Title of new zettel:
+      ((pred stringp)
+       (when (or no-prompt
+                 (y-or-n-p (concat "Create a new zettel (" selection ")? ")))
+         (when-let* ((path (neuron--run-command
+                            (neuron--make-command "new" "--id-hash" selection)))
+                     (id (f-base (f-no-ext path))))
+           (neuron--rebuild-cache)
+           (neuron--insert-zettel-link-from-id id)))))))
 
 (defun neuron--flatten-tag-node (node &optional root)
   "Flatten NODE into a list of tags.
