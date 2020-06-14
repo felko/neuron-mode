@@ -46,7 +46,7 @@ under the point.
 The `neuron-edit-zettel` will prompt you with the list of zettels, where
 you can search by title, by tag or by ID using ivy.
 
-projectile can also be useful asa complement to neuron-mode since it allows
+projectile can also be useful as a complement to neuron-mode since it allows
 you to search the zettelkasten by content.
 
 #### Editing
