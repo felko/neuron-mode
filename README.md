@@ -108,6 +108,11 @@ the web app rather than local files (respectively
 - `neuron-generate-on-save` (default: `nil`)
   Generates the site when saving a note. Opens a compilation buffer
   (`neuron-rib-generate`)
+- `neuron-id-format` (default: `'hash'`)
+  Controls the default ID format used when creating new notes.
+  Other settings are:
+  - `'date`: generates an ID based on the date of creation
+  - `'prompt`: asks for the ID when creating a new zettel
 - `neuron-daily-note-id-format` (default: `"%Y-%m-%d"`)
   Format that controls the filenames of newly created daily notes
 - `neuron-daily-note-title-format` (default: `"%x"`)
