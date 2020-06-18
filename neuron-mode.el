@@ -235,7 +235,7 @@ If `neuron-id-format' is `'prompt' and that the entered ID is invalid, return ni
   (when-let* ((input   (read-string "Title: "))
               (title   (if (s-blank-str? input) "Untitled" input))
               (id-args (neuron--generate-id-arguments))
-              (args    (append '("new") id-args (list (shell-quote-argument title))))
+              (args    (append '("new") id-args (list title)))
               (path    (neuron--run-command (apply #'neuron--make-command args)))
               (buffer  (find-file-noselect path)))
     (and
