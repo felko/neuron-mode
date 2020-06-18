@@ -60,11 +60,21 @@
   :type  'boolean
   :safe  'booleanp)
 
+;; TODO deprecate, replace with neuron-use-wiki-links
 (defcustom neuron-use-short-links t
   "Whether to use <ID> or [ID](z:/) syntax when inserting zettel links."
   :group 'neuron
   :type  'boolean
   :safe  'booleanp)
+
+(defcustom neuron-id-format 'hash
+  "The ID format in which new zettels are created.
+'hash will make neuron generate a hexadecimal 8-digit UUID.
+'date will generate an ID that is baed on the current date,
+    as well as an integer to distinguish zettels that were created the same day,
+'prompt will ask for the user to specify the ID every time a zettel is created."
+  :group 'neuron
+  :type  'symbol)
 
 (defcustom neuron-daily-note-id-format "%Y-%m-%d"
   "Format of daily note IDs.
@@ -115,12 +125,12 @@ of the zettel."
     (((class color) :foreground "grey"))
     (t :inherit italic))
   "Face for title overlays displayed next to short links."
-  :group 'neuron-face)
+  :group 'neuron-faces)
 
 (defface neuron-invalid-link-face
   '((t :inherit error))
   "Face for the 'Unknown' label dislayed next to short links with unknown IDs."
-  :group 'neuron-face)
+  :group 'neuron-faces)
 
 (defface neuron-link-mouse-face
   '((t :inherit highlight))
@@ -201,14 +211,33 @@ Extract only the result itself, so the query type is lost."
   (setq neuron-zettelkasten (counsel-read-directory-name "Select Zettelkasten: "))
   (neuron--rebuild-cache))
 
+(defun neuron--is-valid-id (id)
+  "Check whether the ID is a valid neuron zettel ID.
+Valid IDs should be strings of alphanumeric characters."
+  (string-match (rx bol (+ (or (char (?A . ?Z)) (char (?a . ?z)) digit "-")) eol) id))
+
+(defun neuron--generate-id-arguments ()
+  "Build the command line arguments that specifies the ID of a new zettel.
+If `neuron-id-format' is `'prompt' and that the entered ID is invalid, return nil."
+  (pcase neuron-id-format
+    ('hash '("--id-hash"))
+    ('date '("--id-date"))
+    ('prompt
+     (if-let* ((id (read-string "ID: "))
+               (_  (neuron--is-valid-id id)))
+         (list "--id" id)
+       (user-error "Invalid ID: %S" id)))))
+
 (defun neuron-new-zettel ()
   "Create a new zettel in the current zettelkasten."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (when-let* ((input  (read-string "Title: "))
-              (title  (if (s-blank-str? input) "Untitled" input))
-              (path   (neuron--run-command (neuron--make-command "new" "--id-hash" title)))
-              (buffer (find-file-noselect path)))
+  (when-let* ((input   (read-string "Title: "))
+              (title   (if (s-blank-str? input) "Untitled" input))
+              (id-args (neuron--generate-id-arguments))
+              (args    (append '("new") id-args (list (shell-quote-argument title))))
+              (path    (neuron--run-command (apply #'neuron--make-command args)))
+              (buffer  (find-file-noselect path)))
     (and
      (neuron--rebuild-cache)
      (pop-to-buffer-same-window buffer)
@@ -352,8 +381,8 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
   (interactive "P")
   (neuron-check-if-zettelkasten-exists)
   (let* ((selection
-         (neuron--select-zettel-from-list
-          (map-values neuron--zettel-cache)))
+          (neuron--select-zettel-from-list
+           (map-values neuron--zettel-cache)))
          (id (and (listp selection) (alist-get 'id selection))))
     (pcase selection
       ;; Existing zettel:
