@@ -214,7 +214,7 @@ Extract only the result itself, so the query type is lost."
 (defun neuron--is-valid-id (id)
   "Check whether the ID is a valid neuron zettel ID.
 Valid IDs should be strings of alphanumeric characters."
-  (string-match (rx bol (+ (or (char (?A . ?Z)) (char (?a . ?z)) digit "-")) eol) id))
+  (string-match (rx bol (+ (or (char (?A . ?Z)) (char (?a . ?z)) digit (char "_-"))) eol) id))
 
 (defun neuron--generate-id-arguments ()
   "Build the command line arguments that specifies the ID of a new zettel.
