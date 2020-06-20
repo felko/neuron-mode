@@ -216,25 +216,29 @@ Extract only the result itself, so the query type is lost."
 Valid IDs should be strings of alphanumeric characters."
   (string-match (rx bol (+ (or (char (?A . ?Z)) (char (?a . ?z)) digit (char "_-"))) eol) id))
 
-(defun neuron--generate-id-arguments ()
+(defun neuron--generate-id-arguments (id)
   "Build the command line arguments that specifies the ID of a new zettel.
-If `neuron-id-format' is `'prompt' and that the entered ID is invalid, return nil."
-  (pcase neuron-id-format
-    ('hash '("--id-hash"))
-    ('date '("--id-date"))
-    ('prompt
-     (if-let* ((id (read-string "ID: "))
-               (_  (neuron--is-valid-id id)))
-         (list "--id" id)
-       (user-error "Invalid ID: %S" id)))))
+When ID is non-nil, use that ID, otherwise use the default strategy defined
+by `neuron-id-format'. If it is `'prompt' and that the entered ID is invalid,
+return nil."
+  (if (and id (neuron--is-valid-id id))
+      (list "--id" id)
+    (pcase neuron-id-format
+      ('hash '("--id-hash"))
+      ('date '("--id-date"))
+      ('prompt
+       (if-let* ((id (read-string "ID: "))
+                 (_  (neuron--is-valid-id id)))
+           (list "--id" id)
+         (user-error "Invalid ID: %S" id))))))
 
-(defun neuron-new-zettel ()
-  "Create a new zettel in the current zettelkasten."
-  (interactive)
+(defun neuron-new-zettel (title &optional id)
+  "Create a new zettel in the current zettelkasten.
+The new zettel will be generated with the given TITLE and ID if specified.
+When TITLE is nil, prompt the user."
+  (interactive (list (read-string "Title: ")))
   (neuron-check-if-zettelkasten-exists)
-  (when-let* ((input   (read-string "Title: "))
-              (title   (if (s-blank-str? input) "Untitled" input))
-              (id-args (neuron--generate-id-arguments))
+  (when-let* ((id-args (neuron--generate-id-arguments id))
               (args    (append '("new") id-args (list title)))
               (path    (neuron--run-command (apply #'neuron--make-command args)))
               (buffer  (find-file-noselect path)))
@@ -253,8 +257,7 @@ If `neuron-id-format' is `'prompt' and that the entered ID is invalid, return ni
          (zid (format-time-string neuron-daily-note-id-format today))
          (title (format-time-string neuron-daily-note-title-format today))
          (exists (alist-get 'path (neuron--query-zettel-from-id zid)))
-         (path (or exists (neuron--run-command
-                           (neuron--make-command "new" "--id" zid title))))
+         (path (or exists (neuron-new-zettel title zid)))
          (buffer (and path (find-file-noselect path))))
     (when buffer
       (neuron--rebuild-cache)
@@ -364,7 +367,7 @@ the inserted link will either be of the form <ID> or
   (interactive)
   (neuron-check-if-zettelkasten-exists)
   (when-let* ((title  (read-string "Title: "))
-              (path   (neuron--run-command (neuron--make-command "new" "--id-hash" title)))
+              (path   (neuron--run-command (neuron-new-zettel title)))
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (progn
@@ -382,7 +385,8 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
   (neuron-check-if-zettelkasten-exists)
   (let* ((selection
           (neuron--select-zettel-from-list
-           (map-values neuron--zettel-cache)))
+           (map-values neuron--zettel-cache)
+           "Insert zettel: "))
          (id (and (listp selection) (alist-get 'id selection))))
     (pcase selection
       ;; Existing zettel:
@@ -392,8 +396,7 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
       ((pred stringp)
        (when (or no-prompt
                  (y-or-n-p (concat "Create a new zettel (" selection ")? ")))
-         (when-let* ((path (neuron--run-command
-                            (neuron--make-command "new" "--id-hash" selection)))
+         (when-let* ((path (neuron-new-zettel selection))
                      (id (f-base (f-no-ext path))))
            (neuron--rebuild-cache)
            (neuron--insert-zettel-link-from-id id)))))))
