@@ -232,7 +232,7 @@ return nil."
            (list "--id" id)
          (user-error "Invalid ID: %S" id))))))
 
-(defun neuron-new-zettel (title &optional id)
+(defun neuron-create-zettel (title &optional id)
   "Create a new zettel in the current zettelkasten.
 The new zettel will be generated with the given TITLE and ID if specified.
 When TITLE is nil, prompt the user."
@@ -240,32 +240,42 @@ When TITLE is nil, prompt the user."
   (neuron-check-if-zettelkasten-exists)
   (when-let* ((id-args (neuron--generate-id-arguments id))
               (args    (append '("new") id-args (list title)))
-              (path    (neuron--run-command (apply #'neuron--make-command args)))
-              (buffer  (find-file-noselect path)))
+              (path    (neuron--run-command (apply #'neuron--make-command args))))
     (and
      (neuron--rebuild-cache)
+     (message (concat "Created " (f-filename path)))
+     (neuron--get-cached-zettel-from-id (f-base path)))))
+
+(defun neuron-new-zettel (&optional title id)
+  "Create a new zettel and open it in a new buffer.
+The new zettel will be generated with the given TITLE and ID if specified.
+When TITLE is nil, prompt the user."
+  (interactive)
+  (neuron-check-if-zettelkasten-exists)
+  (when-let* ((zettel  (call-interactively #'neuron-create-zettel title id))
+              (buffer  (find-file-noselect (map-elt zettel 'path))))
+    (and
      (pop-to-buffer-same-window buffer)
-     (neuron-mode)
-     (message (concat "Created " (f-filename path))))))
+     (with-current-buffer buffer (neuron-mode) buffer))))
 
 ;;;###autoload
 (defun neuron-open-daily-notes ()
   "Create or open today's daily notes."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (let* ((today (current-time))
-         (zid (format-time-string neuron-daily-note-id-format today))
-         (title (format-time-string neuron-daily-note-title-format today))
+  (let* ((today  (current-time))
+         (zid    (format-time-string neuron-daily-note-id-format today))
+         (title  (format-time-string neuron-daily-note-title-format today))
          (exists (alist-get 'path (neuron--query-zettel-from-id zid)))
-         (path (or exists (neuron-new-zettel title zid)))
+         (path   (or exists (let ((zettel (neuron-create-zettel title zid))) (map-elt zettel 'path))))
          (buffer (and path (find-file-noselect path))))
-    (when buffer
-      (neuron--rebuild-cache)
-      (pop-to-buffer-same-window buffer)
-      (neuron-mode)
-      (unless exists
-        (dolist (tag neuron-daily-note-tags)
-          (neuron-add-tag tag))))))
+    (and
+     (pop-to-buffer-same-window buffer)
+     (with-current-buffer buffer
+       (neuron-mode)
+       (unless exists
+         (dolist (tag neuron-daily-note-tags)
+           (neuron-add-tag tag)))))))
 
 (defun neuron--style-zettel-id (zid)
   "Style a ZID as shown in the ivy prompt."
@@ -367,7 +377,7 @@ the inserted link will either be of the form <ID> or
   (interactive)
   (neuron-check-if-zettelkasten-exists)
   (when-let* ((title  (read-string "Title: "))
-              (path   (neuron--run-command (neuron-new-zettel title)))
+              (path   (neuron-new-zettel title))
               (id     (f-base (f-no-ext path)))
               (buffer (find-file-noselect path)))
     (progn
@@ -386,7 +396,7 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
   (let* ((selection
           (neuron--select-zettel-from-list
            (map-values neuron--zettel-cache)
-           "Insert zettel: "))
+           "Link zettel: "))
          (id (and (listp selection) (alist-get 'id selection))))
     (pcase selection
       ;; Existing zettel:
@@ -396,8 +406,7 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
       ((pred stringp)
        (when (or no-prompt
                  (y-or-n-p (concat "Create a new zettel (" selection ")? ")))
-         (when-let* ((path (neuron-new-zettel selection))
-                     (id (f-base (f-no-ext path))))
+         (let ((id (map-elt (neuron-create-zettel selection) 'id)))
            (neuron--rebuild-cache)
            (neuron--insert-zettel-link-from-id id)))))))
 
