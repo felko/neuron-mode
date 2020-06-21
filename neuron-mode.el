@@ -400,6 +400,11 @@ PROMPT is the prompt passed to `ivy-read'."
      (pop-to-buffer-same-window buffer)
      (neuron-mode))))
 
+(defun neuron-edit-zettelkasten-configuration ()
+  "Open the neuron.dhall configuration file at the root of the zettelkasten."
+  (interactive)
+  (find-file (f-join "/" (neuron-zettelkasten) "neuron.dhall")))
+
 (defun neuron--insert-static-link-action (path)
   "Insert a link to file PATH relative to the static directory."
   (if (f-descendant-of? path (f-join "/" neuron--current-zettelkasten "static"))
