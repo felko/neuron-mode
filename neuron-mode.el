@@ -41,6 +41,7 @@
 (require 'seq)
 (require 'thingatpt)
 (require 'url-parse)
+(require 'simple)
 
 (defgroup neuron nil
   "A major mode for editing Zettelkasten notes with neuron."
@@ -135,6 +136,18 @@ of the zettel."
 (defface neuron-link-mouse-face
   '((t :inherit highlight))
   "Face displayed when hovering a zettel short link.")
+
+(defvar neuron-make-title
+  (lambda (selection)
+    (with-temp-buffer
+      (insert selection)
+      (goto-char (point-min))
+      (call-interactively #'capitalize-dwim)
+      (buffer-string)))
+  "Postprocess the selected text to make the title of zettels.
+This function is called by `neuron-create-zettel-from-selection' to
+generate a title for the new zettel, it passes the selected text as
+an argument.")
 
 (defvar neuron--current-zettelkasten nil
   "The currently active zettelkasten.
@@ -437,6 +450,18 @@ the inserted link will either be of the form <ID> or
       (pop-to-buffer-same-window buffer)
       (neuron-mode)
       (message (concat "Created " (f-filename path))))))
+
+(defun neuron-create-zettel-from-selection ()
+  "Transforms the selected text into a new zettel with the selection as a title."
+  (interactive)
+  (let* ((selection (buffer-substring-no-properties (region-beginning) (region-end)))
+         (title     (funcall neuron-make-title selection))
+         (zettel    (neuron-create-zettel title)))
+    (save-excursion
+      (call-interactively #'delete-region)
+      (goto-char (region-beginning))
+      (insert (neuron--insert-zettel-link-from-id (alist-get 'id zettel)))
+      (neuron--overlay-update))))
 
 (defun neuron-create-and-insert-zettel-link (no-prompt)
   "Insert a markdown hypertext link to another zettel.
