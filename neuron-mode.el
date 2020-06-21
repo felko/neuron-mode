@@ -184,7 +184,8 @@ Refresh the zettel cache if the value has changed."
            (and neuron--current-zettelkasten (not (equal old-root root)))
            ;; First time that a neuron-mode function was called:
            (not neuron--current-zettelkasten))
-      (neuron--rebuild-cache))))
+      (neuron--rebuild-cache))
+    neuron--current-zettelkasten))
 
 (defun neuron-zettelkasten (&optional pwd)
   "The location of the current Zettelkasten directory.
