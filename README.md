@@ -110,7 +110,7 @@ the web app rather than local files (respectively
 - `neuron-generate-on-save` (default: `nil`)
   Generates the site when saving a note. Opens a compilation buffer
   (`neuron-rib-generate`)
-- `neuron-id-format` (default: `'hash'`)
+- `neuron-id-format` (default: `'hash`)
   Controls the default ID format used when creating new notes.
   It can be set to:
   - `'hash`: generates an unique 32 bit UUID (default behavior of neuron)
