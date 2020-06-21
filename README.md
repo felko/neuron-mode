@@ -21,12 +21,15 @@ to include neuron-mode into their private config.
 
 ## Features
 
-All commands are executed in an active zettelkasten which can be selected with
-`neuron-select-zettelkasten`. neuron-mode will then cache the zettels and
-regenerate it when needed (typically when creating a new zettel). Sometimes,
+All commands are executed in the active zettelkasten which is either detected
+by traversing the directory hierarchy upwards until a `neuron.dhall` file
+is met (see [neuron configuration](https://neuron.zettel.page/2011701.html)).
+Otherwise, neuron-mode will take the default zettelkasten, defined by the
+`neuron-default-zettelkasten-directory`. neuron-mode will then cache the zettels
+and regenerate it when needed (typically when creating a new zettel). Sometimes,
 when the zettelkasten is modified externally to neuron-mode, you might need to
 invalidate the cache and rebuild it manually, which is done with the
-`neuron-refresh-buffer` command. This will also reload the titles displayed
+`neuron-refresh` command. This will also reload the titles displayed
 next to zettel links (see next paragraph).
 
 #### Reading
@@ -93,7 +96,6 @@ the web app rather than local files (respectively
 | `neuron-open-daily-notes`      | N/A             | Open today's notes if it exists, or create it otherwise                   |
 | `neuron-refresh`               | `C-c C-S-r`     | Regenerate the zettel cache and title overlays in all neuron-mode buffers |
 | `neuron-follow-thing-at-point` | `C-c C-o`       | Override `markdown-follow-thing-at-point` to handle zettel URI protocol   |
-| `neuron-select-zettelkasten`   | N/A             | Set the current active Zettelkasten in which all of these command occur   |
 | `neuron-rib-generate`          | N/A             | Perform a one-off generation of the site                                  |
 | `neuron-rib-serve`             | N/A             | Start the wep application on `localhost:8080`                             |
 | `neuron-rib-open-z-index`      | N/A             | Open the web application at `localhost:8080/z-index.html`                 |
@@ -103,14 +105,15 @@ the web app rather than local files (respectively
 ## Customization
 
 - `neuron-default-zettelkasten-directory` (default: `~/zettelkasten`)
-  Defines the default active zettelkasten when `neuron-select-zettelkasten`
-  wasn't called yet.
+  Defines the fallback zettelkasten when the current directory is not located in
+  a zettelkasten.
 - `neuron-generate-on-save` (default: `nil`)
   Generates the site when saving a note. Opens a compilation buffer
   (`neuron-rib-generate`)
 - `neuron-id-format` (default: `'hash'`)
   Controls the default ID format used when creating new notes.
-  Other settings are:
+  It can be set to:
+  - `'hash`: generates an unique 32 bit UUID (default behavior of neuron)
   - `'date`: generates an ID based on the date of creation
   - `'prompt`: asks for the ID when creating a new zettel
 - `neuron-daily-note-id-format` (default: `"%Y-%m-%d"`)

@@ -136,20 +136,77 @@ of the zettel."
   '((t :inherit highlight))
   "Face displayed when hovering a zettel short link.")
 
-(defvar neuron-zettelkasten neuron-default-zettelkasten-directory
-  "The location of the current Zettelkasten directory.")
+(defvar neuron--current-zettelkasten nil
+  "The currently active zettelkasten.
+Since it can be invalid sometimes, it should only be used in internal
+functions when we know that the zettelkasten was just updated.")
+
+(defun neuron--detect-zettelkasten (pwd)
+  "Navigate upwards from PWD until a neuron.dhall file is found.
+When no neuron.dhall file was found, return nil."
+  (let ((is-zk (lambda (dir) (f-exists? (f-join "/" dir "neuron.dhall")))))
+    (f-traverse-upwards is-zk pwd)))
+
+(defun neuron--get-zettelkasten (&optional pwd)
+  "Return the location of the current zettelkasten.
+Assuming the current working directory is PWD, first try to
+detect the zettelkasten automatically by traversing the hierarchy
+upwards until a neuron.dhall file is found. When no neuron.dhall
+file is found, return `neuron-default-zettelkasten-directory'.
+Lastly, if the default zettelkasten location doesn't point to
+an actual directory, return nil."
+  (interactive "P")
+  (or
+   (neuron--detect-zettelkasten pwd)
+   (let ((root neuron-default-zettelkasten-directory))
+     (and (f-exists? root) (f-directory? root) neuron-default-zettelkasten-directory))))
+
+(defun neuron--update-current-zettelkasten (root)
+  "Update `neuron--current-zettelkasten' with the new value ROOT.
+Refresh the zettel cache if the value has changed."
+  (let ((old-root neuron--current-zettelkasten))
+    (setq neuron--current-zettelkasten root)
+    (when (or
+           ;; When the current zettelkasten has changed since last time
+           (and neuron--current-zettelkasten (not (equal old-root root)))
+           ;; First time that a neuron-mode function was called:
+           (not neuron--current-zettelkasten))
+      (neuron--rebuild-cache))))
+
+(defun neuron-zettelkasten (&optional pwd)
+  "The location of the current Zettelkasten directory.
+First, it tries to detect automatically the current zettelkasten assuming
+the working directory is PWD, by traversing upwards in the directory
+hierarchy until a neuron.dhall file is met, and returns
+`neuron-default-zettelkasten-directory' when no neuron.dhall was found.
+If in turn `neuron-default-zettelkasten-directory' doesn't point to an
+existing directory, throw an user error."
+  (neuron--update-current-zettelkasten
+   (or
+    (call-interactively 'neuron--get-zettelkasten pwd)
+    (let ((default neuron-default-zettelkasten-directory))
+      (and
+       (when (not (f-exists? default))
+         (user-error "Invalid zettelkasten: %s does not exist" default))
+       (when (not (f-directory? default))
+         (user-error "Invalid zettelkasten: %s is not a directory" default)))))))
+
+;; Convenient alias when the result of `neuron-zettelkasten' isn't assigned
+(defun neuron-check-if-zettelkasten-exists ()
+  "Check whether the active zettelkasten exists."
+  (neuron-zettelkasten))
 
 (defun neuron--make-command (cmd &rest args)
   "Construct a neuron command CMD with argument ARGS.
-The command contains a `--zettelkasten-dir' argument if `neuron-zettelkasten' is non-nil."
+If the current zettelkasten is ill-defined, return nil."
   (mapconcat
    #'shell-quote-argument
-   (append (list "neuron" "--zettelkasten-dir" neuron-zettelkasten cmd) args) " "))
+   (append (list "neuron" "--zettelkasten-dir" neuron--current-zettelkasten cmd) args) " "))
 
 (defun neuron--make-query-uri-command (uri)
   "Construct a neuron query command that queries the zettelkasten from URI.
 URI is expected to have a zquery:/ scheme."
-  (concat (neuron--make-command "query") " --uri " (format "'%s'" uri)))
+  (neuron--make-command "query" "--uri" uri))
 
 (defun neuron--run-command (cmd)
   "Run the CMD neuron command with arguments ARGS in the current zettekasten.
@@ -204,12 +261,6 @@ Extract only the result itself, so the query type is lost."
    (lambda (buffer) (with-current-buffer buffer (neuron--setup-overlays)))
    (neuron--list-buffers))
   (message "Regenerated zettel cache"))
-
-(defun neuron-select-zettelkasten ()
-  "Select the active zettelkasten."
-  (interactive)
-  (setq neuron-zettelkasten (counsel-read-directory-name "Select Zettelkasten: "))
-  (neuron--rebuild-cache))
 
 (defun neuron--is-valid-id (id)
   "Check whether the ID is a valid neuron zettel ID.
@@ -337,18 +388,18 @@ PROMPT is the prompt passed to `ivy-read'."
 
 (defun neuron--insert-static-link-action (path)
   "Insert a link to file PATH relative to the static directory."
-  (if (f-descendant-of? path (f-join "/" neuron-zettelkasten "static"))
-      (insert (format "[](%s)" (f-relative path neuron-zettelkasten)))
-    (when (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static?" path neuron-zettelkasten))
-      (let ((copied-path (f-join "/" neuron-zettelkasten "static" (f-filename path))))
+  (if (f-descendant-of? path (f-join "/" neuron--current-zettelkasten "static"))
+      (insert (format "[](%s)" (f-relative path neuron--current-zettelkasten)))
+    (when (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static?" path root))
+      (let ((copied-path (f-join "/" root "static" (f-filename path))))
         (copy-file path copied-path)
-        (insert (format "[](%s)" (f-relative copied-path neuron-zettelkasten)))))))
+        (insert (format "[](%s)" (f-relative copied-path root)))))))
 
 (defun neuron-insert-static-link ()
   "Insert a link to a file in the static directory."
   (interactive)
-  (neuron-check-if-zettelkasten-exists)
-  (let ((default-directory (f-join "/" neuron-zettelkasten "static")))
+  (when-let* ((root              (neuron-zettelkasten))
+              (default-directory (f-join "/" root "static")))
     (ivy-read "Select static file: " #'read-file-name-internal
               :matcher #'counsel--find-file-matcher
               :action #'neuron--insert-static-link-action
@@ -537,7 +588,7 @@ the cache when the ID is not found."
 (defun neuron--open-page (rel-path)
   "Open the REL-PATH in the browser.
 The path is relative to the neuron output directory."
-  (let* ((path (f-join "/" neuron-zettelkasten ".neuron" "output" rel-path))
+  (let* ((path (f-join "/" neuron--current-zettelkasten ".neuron" "output" rel-path))
          (url (format "file://%s" path)))
     (browse-url url)))
 
@@ -638,10 +689,10 @@ the map features an `'url' field."
 (defun neuron-rib-watch ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
-  (neuron-check-if-zettelkasten-exists)
-  (if (neuron--run-rib-process "-w")
-      (message "Watching %s for changes..." neuron-zettelkasten)
-    (user-error "Failed to watch %s" neuron-zettelkasten)))
+  (let ((root (neuron-zettelkasten)))
+    (if (neuron--run-rib-process "-w")
+        (message "Watching %s for changes..." root)
+      (user-error "Failed to watch %s" root))))
 
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
@@ -654,10 +705,10 @@ the map features an `'url' field."
 (defun neuron-rib-generate ()
   "Do an one-off generation of the web interface of the zettelkasten."
   (interactive)
-  (neuron-check-if-zettelkasten-exists)
-  (if (neuron--run-rib-compile)
-      (message "Generated HTML files")
-    (user-error "Failed to generate %s" neuron-zettelkasten)))
+  (let ((root (neuron-zettelkasten)))
+    (if (neuron--run-rib-compile)
+        (message "Generated HTML files")
+      (user-error "Failed to generate %s" root))))
 
 (defun neuron-rib-open-page (page)
   "Open the web-application at page PAGE."
@@ -674,8 +725,8 @@ the map features an `'url' field."
   "Open the web application in the web browser at the current zettel note."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (let ((zid (f-base (buffer-file-name))))
-    (neuron-rib-open-page (concat zid ".html"))))
+  (let ((id (f-base (buffer-file-name))))
+    (neuron-rib-open-page (concat id ".html"))))
 
 (defun neuron-rib-open-zettel ()
   "Open a zettel in the web application."
@@ -752,15 +803,6 @@ When AFTER is non-nil, this hook is being called after the update occurs."
 
 (push "z:" thing-at-point-uri-schemes)
 
-(defun neuron-check-if-zettelkasten-exists ()
-  "Check if `neuron-zettelkasten' is an existing directory.
-Throws an user error when it's not."
-  (if (not (f-exists? neuron-zettelkasten))
-      (user-error "Invalid zettelkasten: %s does not exist" neuron-zettelkasten)
-    (if (not (f-directory? neuron-zettelkasten))
-        (user-error "Invalid zettelkasten: %s is not a directory" neuron-zettelkasten)
-      t)))
-
 ;;;###autoload
 (define-derived-mode neuron-mode markdown-mode "Neuron"
   "A major mode to edit Zettelkasten notes with neuron."
@@ -771,9 +813,6 @@ Throws an user error when it's not."
   (neuron--setup-overlays)
   (neuron--rebuild-cache)
   (use-local-map neuron-mode-map))
-
-(when (f-directory? neuron-zettelkasten)
-  (neuron--rebuild-cache))
 
 (provide 'neuron-mode)
 
