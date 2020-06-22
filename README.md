@@ -95,6 +95,7 @@ the web app rather than local files (respectively
 | `neuron-create-and-insert-zettel-link`   | N/A             | Like `neuron-insert-zettel-link` but can also create new zettels          |
 | `neuron-create-zettel-from-selection`    | N/A             | Transform the selected text into a new zettel                             |
 | `neuron-insert-static-link`              | `C-c C-s`       | Insert a link to a selected file in the static directory                  |
+| `neuron-toggle-connection-type`          | N/A             | Toggle the connection type under point, between cf and folgezettel        |
 | `neuron-open-daily-notes`                | N/A             | Open today's notes if it exists, or create it otherwise                   |
 | `neuron-refresh`                         | `C-c C-S-r`     | Regenerate the zettel cache and title overlays in all neuron-mode buffers |
 | `neuron-follow-thing-at-point`           | `C-c C-o`       | Override `markdown-follow-thing-at-point` to handle zettel URI protocol   |

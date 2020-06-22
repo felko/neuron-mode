@@ -41,6 +41,7 @@
 (require 'seq)
 (require 'thingatpt)
 (require 'url-parse)
+(require 'url-util)
 (require 'simple)
 
 (defgroup neuron nil
@@ -492,6 +493,29 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
            (neuron--rebuild-cache)
            (neuron--insert-zettel-link-from-id id)))))))
 
+(defun neuron-toggle-connection-type ()
+  "Toggle the link under point between folgezettel and cf connection."
+  (interactive)
+  (if (thing-at-point-looking-at
+       neuron-link-regex
+       ;; limit to current line
+       (max (- (point) (line-beginning-position))
+            (- (line-end-position) (point))))
+      (if-let* ((link (match-string 1))
+                (start (match-beginning 0))
+                (end (match-end 0))
+                (query (neuron--parse-query-from-url-or-id link))
+                (conn (alist-get 'conn query))
+                (toggled (if (eq conn 'ordinary) 'folgezettel 'ordinary))
+                (new-query (map-insert (map-delete query 'conn) 'conn toggled)))
+          (save-excursion
+            (goto-char start)
+            (delete-region start end)
+            (insert (neuron-render-query new-query))
+            (neuron--setup-overlays))
+        (user-error "Invalid query"))
+    (user-error "No query under point")))
+
 (defun neuron--flatten-tag-node (node &optional root)
   "Flatten NODE into a list of tags.
 Each element is a map containing 'tag and 'count keys.
@@ -677,18 +701,38 @@ When URL-OR-ID is a raw ID, or that it is an URL having startin with z:zettel,
 the map also has an `'id' field. Whenever URL-OR-ID is an URL and not an ID,
 the map features an `'url' field."
   (let* ((struct (url-generic-parse-url url-or-id))
-         ;; Ignore the actual query as it is only handled by neuron
-         (path   (car (url-path-and-query struct)))
+         (path-and-query (url-path-and-query struct))
+         (path   (car path-and-query))
+         (query  (cdr path-and-query))
          (parts  (s-split "/" path))
-         (type   (url-type struct)))
-    (if (equal type "z")
-        (pcase (car parts)
-          ("zettel"  (when-let ((zid (nth 1 parts)))
-                       `((type . zettel) (url . ,url-or-id) (id . ,zid))))
-          ("zettels" `((type . zettels) (url . ,url-or-id)))
-          ("tags"    `((type . tags) (url . ,url-or-id))))
-      ;; Probably just an ID
-      `((type . zettel) (id . ,path)))))
+         (type   (url-type struct))
+         (args   (when query (url-parse-query-string query)))
+         (conn   (if (assoc "cf" args) 'ordinary 'folgezettel))
+         (common `((conn . ,conn)
+                   (url . ,url-or-id)
+                   (args . ,(assoc-delete-all "cf" args)))))
+    (append
+     common
+     (if (equal type "z")
+         (pcase (car parts)
+           ("zettel"  (when-let ((id (nth 1 parts))) `((type . zettel) (id . ,id))))
+           ("zettels" `((type . zettels)))
+           ("tags"    `((type . tags))))
+       ;; Probably just an ID
+       `((type . zettel) (id . ,path))))))
+
+(defun neuron-render-query (query)
+  "Render a neuron query in markdown.
+QUERY is an alist containing at least the query type and the URL."
+  (let* ((args (alist-get 'args query))
+         (conn (alist-get 'conn query))
+         (url-args (if (eq conn 'ordinary) (cons '("cf" "") args) args))
+         (url-query (url-build-query-string url-args))
+         (url-suffix (if url-args (format "?%s" url-query) "")))
+    (pcase (alist-get 'type query)
+      ('zettel (format "<%s%s>" (alist-get 'id query) url-suffix))
+      ('zettels (format "<z:zettels%s>" url-suffix))
+      ('tags (format "<z:tags%s>" url-suffix)))))
 
 (defun neuron-follow-thing-at-point ()
   "Open the zettel link at point."
@@ -704,6 +748,7 @@ the map features an `'url' field."
           (neuron--follow-query query)
         (user-error "Invalid query"))
     ;; Old style links
+    ;; TODO deprecate
     (let* ((link   (markdown-link-at-pos (point)))
            (id     (nth 2 link))
            (url    (nth 3 link))
