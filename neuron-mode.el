@@ -424,7 +424,7 @@ PROMPT is the prompt passed to `ivy-read'."
   "Insert a link to a file in the static directory."
   (interactive)
   (when-let* ((root              (neuron-zettelkasten))
-              (default-directory (f-join "/" root "static")))
+              (default-directory (f-join "/" root "static/")))
     (ivy-read "Select static file: " #'read-file-name-internal
               :matcher #'counsel--find-file-matcher
               :action #'neuron--insert-static-link-action
