@@ -262,10 +262,15 @@ Extract only the result itself, so the query type is lost."
         (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'id)) zettel))))
     (setq neuron--zettel-cache (mapcar assoc-id zettels))))
 
-(defun neuron--list-buffers ()
-  "Return the list of all open buffers in which neuron-mode is active."
-  (let ((is-neuron-buffer (lambda (buffer) (with-current-buffer buffer (eq major-mode 'neuron-mode)))))
-    (seq-filter is-neuron-buffer (buffer-list))))
+(defun neuron-list-buffers ()
+  "Return the list of all open neuron-mode buffers in the current zettelkasten."
+  (let* ((root (neuron-zettelkasten))
+         (pred (lambda (buffer)
+                 (with-current-buffer buffer
+                   (and
+                    (eq major-mode 'neuron-mode)
+                    (f-parent-of? root buffer-file-name))))))
+    (seq-filter pred (buffer-list))))
 
 (defun neuron-refresh ()
   "Regenerate the zettel cache and the title overlays in all neuron-mode buffers."
@@ -274,7 +279,7 @@ Extract only the result itself, so the query type is lost."
   (neuron--rebuild-cache)
   (mapcar
    (lambda (buffer) (with-current-buffer buffer (neuron--setup-overlays)))
-   (neuron--list-buffers))
+   (neuron-list-buffers))
   (message "Regenerated zettel cache"))
 
 (defun neuron--is-valid-id (id)
@@ -447,15 +452,15 @@ the inserted link will either be of the form <ID> or
   "Create a new zettel."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (when-let* ((title  (read-string "Title: "))
-              (path   (neuron-new-zettel title))
-              (id     (f-base (f-no-ext path)))
+  (when-let* ((zettel (call-interactively 'neuron-create-zettel))
+              (id     (alist-get 'id zettel))
+              (path   (alist-get 'path zettel))
               (buffer (find-file-noselect path)))
     (progn
       (neuron--rebuild-cache)
       (neuron--insert-zettel-link-from-id id)
       (pop-to-buffer-same-window buffer)
-      (neuron-mode)
+      (with-current-buffer buffer (neuron-mode))
       (message (concat "Created " (f-filename path))))))
 
 (defun neuron-create-zettel-from-selection ()
@@ -555,23 +560,33 @@ tag."
                     :require-match require-match)))
     (or (get-text-property 0 'tag selection) selection)))
 
+(defun neuron--get-metadata-block-bounds (&optional create-if-missing)
+  "Return the bounds of the metadata block.
+If CREATE-IF-MISSING is non-nil, insert automatically the YAML metadata
+blocks delimiters (---)."
+  (save-excursion
+    (goto-char (point-min))
+    (when-let* ((delim (rx bol "---" (0+ blank) eol))
+                (begin (if (looking-at-p delim) (point)
+                         (when create-if-missing
+                           (save-excursion (insert "---\n---\n"))
+                           (point))))
+                (end (save-excursion
+                       (goto-char begin)
+                       (forward-line)
+                       (while (not (looking-at-p delim))
+                         (forward-line))
+                       (point))))
+      (list begin end))))
+
 (defun neuron--navigate-to-metadata-field (field)
   "Move point to the character after metadata FIELD.
 If FIELD does not exist it is created."
   (goto-char (point-min))
-  (let* ((delim (rx bol "---" (0+ blank) eol))
-         (begin (if (looking-at-p delim) (point)
-                  (save-excursion (insert "---\n---\n"))
-                  (point)))
-         (end (save-excursion
-                (goto-char begin)
-                (forward-line)
-                (while (not (looking-at-p delim))
-                  (forward-line))
-                (point)))
+  (let* ((block-end (nth 1 (neuron--get-metadata-block-bounds 'create-if-missing)))
          (fieldre (rx-to-string `(: bol (0+ blank) ,field ":" (0+ blank)))))
-    (unless (search-forward-regexp fieldre end t)
-      (goto-char end)
+    (unless (search-forward-regexp fieldre block-end t)
+      (goto-char block-end)
       (forward-line -1)
       (end-of-line)
       (insert (concat "\n" field ": ")))))
@@ -815,6 +830,73 @@ QUERY is an alist containing at least the query type and the URL."
   "Stop the web application."
   (interactive)
   (kill-buffer "*rib*"))
+
+(defconst neuron-tag-component-regex
+  (concat "[A-Za-z0-9-_]+")
+  "Regex matching a tag component.")
+
+(defun neuron--make-tag-pattern-component-regex (component &optional leading-slash)
+  "Translate the component COMPONENT of a tag pattern into a regex.
+If LEADING-SLASH is non-nil, introduce a leading `/' character in front
+of the necessary regexes."
+  (let ((prefix (if leading-slash "/" "")))
+    (pcase component
+      ((pred (string-match neuron-tag-component-regex))
+       (eval `(rx ,prefix ,(regexp-quote component))))
+      ("*"
+       (eval `(rx ,prefix (group (regexp ,neuron-tag-component-regex)))))
+      ("**"
+       (eval `(rx (? ,prefix (group (* (regexp ,neuron-tag-component-regex) "/") (regexp ,neuron-tag-component-regex)))))))))
+
+(defun neuron--make-tag-pattern-regex (pattern)
+  "Transform a tag pattern PATTERN into a regex."
+  (let* ((components (s-split "/" pattern t))
+         (concat-patterns (lambda (pat1 pat2)
+                            (eval `(rx (regexp ,pat1) (regexp ,pat2)))))
+         (append-comp-pattern (lambda (pat comp)
+                                (funcall concat-patterns pat (neuron--make-tag-pattern-component-regex comp 'leading-slash))))
+         (remaining (cl-reduce append-comp-pattern (cdr components) :initial-value ""))
+         (tag-pattern
+          (funcall concat-patterns (neuron--make-tag-pattern-component-regex (car components)) remaining)))
+    (eval `(rx bow (regexp ,tag-pattern) eow))))
+
+(defun neuron--replace-tag-in-current-zettel (pattern repl)
+  "Replace tags matched by PATTERN to a replacement REPL.
+REPL is a string that may contain substrings like `\\N' where
+N denotes the tag components that were matched by the Nth
+glob."
+  (save-excursion
+    (when-let* ((tag-regex (neuron--make-tag-pattern-regex pattern))
+                (bounds (neuron--get-metadata-block-bounds)))
+      (goto-char (nth 1 bounds))
+      (while (re-search-backward tag-regex nil t)
+        (replace-match repl 'fixed-case)))))
+
+(defun neuron-replace-tag (pattern repl)
+  "Map all tags matching PATTERN to a REPL.
+PATTERN is a tag glob as used in neuron queries.
+REPL is a string that may contain substrings like `\\N' where
+N denotes the tag components that were matched by the Nth glob
+pattern.
+Example:
+`(neuron-add-tag \"**/theorem\" \"math/theorem/\\1\")'
+will replace number-theory/theorem to math/theorem/number-theory
+and algebra/linear/theorem to math/theorem/algebra/linear."
+  (interactive (list
+                (read-string "Tag pattern: ")
+                (read-string "Replacement: ")))
+  (neuron--rebuild-cache)
+  (let ((current-buffers (neuron-list-buffers)))
+    (map-do
+     (lambda (id zettel) (when-let* ((path (map-elt zettel 'path))
+                                     (buffer (find-file-noselect path)))
+                           (with-current-buffer buffer
+                             (neuron--replace-tag-in-current-zettel pattern repl)
+                             (save-buffer))
+                           (unless (member buffer current-buffers)
+                             (kill-buffer buffer))))
+     neuron--zettel-cache)
+    (message "Replaced all tags")))
 
 (defun neuron--setup-overlay-from-id (ov zid)
   "Setup a single title overlay from a zettel ID.
