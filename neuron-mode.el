@@ -277,9 +277,8 @@ Extract only the result itself, so the query type is lost."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
   (neuron--rebuild-cache)
-  (mapcar
-   (lambda (buffer) (with-current-buffer buffer (neuron--setup-overlays)))
-   (neuron-list-buffers))
+  (dolist (buffer (neuron-list-buffers))
+    (with-current-buffer buffer (neuron--setup-overlays)))
   (message "Regenerated zettel cache"))
 
 (defun neuron--is-valid-id (id)
@@ -299,7 +298,7 @@ return nil."
       ('date '("--id-date"))
       ('prompt
        (if-let* ((id (read-string "ID: "))
-                 (_  (neuron--is-valid-id id)))
+                 ((neuron--is-valid-id id)))
            (list "--id" id)
          (user-error "Invalid ID: %S" id))))))
 
@@ -415,10 +414,11 @@ PROMPT is the prompt passed to `ivy-read'."
   "Insert a link to file PATH relative to the static directory."
   (if (f-descendant-of? path (f-join "/" neuron--current-zettelkasten "static"))
       (insert (format "[](%s)" (f-relative path neuron--current-zettelkasten)))
-    (when (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static?" path root))
-      (let ((copied-path (f-join "/" root "static" (f-filename path))))
+    (when
+        (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static?" path neuron--current-zettelkasten))
+      (let ((copied-path (f-join "/" neuron--current-zettelkasten "static" (f-filename path))))
         (copy-file path copied-path)
-        (insert (format "[](%s)" (f-relative copied-path root)))))))
+        (insert (format "[](%s)" (f-relative copied-path neuron--current-zettelkasten)))))))
 
 (defun neuron-insert-static-link ()
   "Insert a link to a file in the static directory."
@@ -473,7 +473,7 @@ the inserted link will either be of the form <ID> or
       (call-interactively #'delete-region)
       (goto-char (region-beginning))
       (insert (neuron--insert-zettel-link-from-id (alist-get 'id zettel)))
-      (neuron--overlay-update))))
+      (neuron--setup-overlays))))
 
 (defun neuron-create-and-insert-zettel-link (no-prompt)
   "Insert a markdown hypertext link to another zettel.
@@ -888,7 +888,7 @@ and algebra/linear/theorem to math/theorem/algebra/linear."
   (neuron--rebuild-cache)
   (let ((current-buffers (neuron-list-buffers)))
     (map-do
-     (lambda (id zettel) (when-let* ((path (map-elt zettel 'path))
+     (lambda (_ zettel) (when-let* ((path (map-elt zettel 'path))
                                      (buffer (find-file-noselect path)))
                            (with-current-buffer buffer
                              (neuron--replace-tag-in-current-zettel pattern repl)
