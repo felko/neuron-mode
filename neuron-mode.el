@@ -978,6 +978,15 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (neuron--rebuild-cache)
   (use-local-map neuron-mode-map))
 
+(defun neuron--auto-enable-when-in-zettelkasten ()
+  "Automatically switch to neuron-mode when located in a zettelkasten."
+  (when (and (eq major-mode 'markdown-mode)
+             (neuron--detect-zettelkasten (f-parent buffer-file-name)))
+    (message "Automatically switched to neuron-mode")
+    (neuron-mode)))
+
+(add-hook 'markdown-mode-hook #'neuron--auto-enable-when-in-zettelkasten t nil)
+
 (provide 'neuron-mode)
 
 ;;; neuron-mode.el ends here
