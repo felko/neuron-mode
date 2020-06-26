@@ -7,7 +7,7 @@
 ;; Homepage: https://github.com/felko/neuron-mode
 ;; Keywords: outlines
 ;; Package-Version: 0.1
-;; Package-Requires: ((emacs "26.3") (f "0.20.0") (counsel "0.13.0") (markdown-mode "2.3"))
+;; Package-Requires: ((emacs "26.3") (f "0.20.0") (markdown-mode "2.3"))
 ;;
 ;; This file is not part of GNU Emacs.
 
@@ -33,7 +33,6 @@
 
 ;;; Code:
 
-(require 'counsel)
 (require 'f)
 (require 'json)
 (require 'markdown-mode)
@@ -120,25 +119,24 @@ of the zettel."
   '((((class color) (min-colors 88) (background dark)) :foreground "orange1")
     (((class color) (min-colors 88) (background light)) :foreground "orange3")
     (t :inherit link))
-  "Face for zettel IDs in zettels and ivy-read prompts"
+  "Face for zettel IDs in zettels and prompts"
   :group 'neuron-faces)
 
 (defface neuron-cf-link-face
   '((((class color) (min-colors 88) (background dark)) :foreground "burlywood")
     (((class color) (min-colors 88) (background light)) :foreground "sienna")
     (t :inherit link))
-  "Face for zettel IDs in zettels and ivy-read prompts"
+  "Face for ordinary connected links."
   :group 'neuron-faces)
-
 
 (defface neuron-invalid-zettel-id-face
   '((t :inherit error))
-  "Face for zettel IDs in zettels and ivy-read prompts"
+  "Face for links that point to non existent zettels."
   :group 'neuron-faces)
 
 (defface neuron-zettel-tag-face
   '((t :inherit shadow))
-  "Face for zettel IDs in zettels and ivy-read prompts"
+  "Face for tags in prompts."
   :group 'neuron-faces)
 
 (defface neuron-title-overlay-face
@@ -372,11 +370,11 @@ When TITLE is nil, prompt the user."
            (neuron-add-tag tag)))))))
 
 (defun neuron--style-zettel-id (zid)
-  "Style a ZID as shown in the ivy prompt."
+  "Style a ZID as shown in the completion prompt."
   (propertize (format "<%s>" zid) 'face 'neuron-link-face))
 
 (defun neuron--style-tags (tags)
-  "Style TAGS as shown in the ivy prompt when selecting a zettel."
+  "Style TAGS as shown in the completion prompt when selecting a zettel."
   (if (eq tags [])
       ""
     (propertize (format "(%s)" (s-join ", " tags)) 'face 'neuron-zettel-tag-face)))
@@ -394,18 +392,18 @@ When TITLE is nil, prompt the user."
 (defun neuron--select-zettel-from-list (zettels &optional prompt require-match)
   "Select a zettel from a given list.
 ZETTELS is a list of maps containing zettels (keys: id, title, day, tags, path)
-PROMPT is the prompt passed to `ivy-read'.  When REQUIRE-MATCH is
+PROMPT is the prompt passed to `completing-read'.  When REQUIRE-MATCH is
 non-nil require the input to match an existing zettel."
   (let* ((selection
-          (ivy-read (or prompt "Select Zettel: ")
-                    (mapcar #'neuron--propertize-zettel zettels)
-                    :caller 'neuron--select-zettel-from-list
-                    :require-match require-match)))
+          (completing-read (or prompt "Select Zettel: ")
+                           (mapcar #'neuron--propertize-zettel zettels)
+                           nil
+                           require-match)))
     (or (get-text-property 0 'zettel selection) selection)))
 
 (defun neuron--select-zettel-from-cache (&optional prompt)
   "Select a zettel from the current cache.
-PROMPT is the prompt passed to `ivy-read'."
+PROMPT is the prompt passed to `completing-read'."
   (neuron--select-zettel-from-list (map-values neuron--zettel-cache) prompt t))
 
 (defun neuron--select-zettel-from-query (uri)
@@ -414,7 +412,7 @@ PROMPT is the prompt passed to `ivy-read'."
 
 (defun neuron-select-zettel (&optional prompt)
   "Find a zettel in the current zettelkasten.
-PROMPT is the prompt passed to `ivy-read'."
+PROMPT is the prompt passed to `completing-read'."
   (neuron-check-if-zettelkasten-exists)
   (neuron--select-zettel-from-cache prompt))
 
@@ -434,26 +432,27 @@ PROMPT is the prompt passed to `ivy-read'."
   (interactive)
   (find-file (f-join "/" (neuron-zettelkasten) "neuron.dhall")))
 
-(defun neuron--insert-static-link-action (path)
-  "Insert a link to file PATH relative to the static directory."
-  (if (f-descendant-of? path (f-join "/" neuron--current-zettelkasten "static"))
-      (insert (format "[](%s)" (f-relative path neuron--current-zettelkasten)))
-    (when
-        (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static? " path neuron--current-zettelkasten))
-      (let ((copied-path (f-join "/" neuron--current-zettelkasten "static" (f-filename path))))
-        (copy-file path copied-path)
-        (insert (format "[](%s)" (f-relative copied-path neuron--current-zettelkasten)))))))
+(defun neuron--select-static-file (&optional allow-copy)
+  "Select a file located in the static directory of the current zettelkasten.
+If ALLOW-COPY is non-nil and that the selected file is not in the static
+directory, prompt the user if they want to copy it to the static directory,
+otherwise return nil."
+  (let* ((root (neuron-zettelkasten))
+         (static-dir (f-join "/" root "static"))
+         (path (read-file-name "Select static file: " static-dir nil t)))
+    (if (f-descendant-of? path static-dir)
+        path
+      (when
+          (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static? " path root))
+        (let ((copied-path (f-join "/" static-dir (f-filename path))))
+          (copy-file path copied-path)
+          copied-path)))))
 
-(defun neuron-insert-static-link ()
-  "Insert a link to a file in the static directory."
-  (interactive)
-  (when-let* ((root              (neuron-zettelkasten))
-              (default-directory (f-join "/" root "static/")))
-    (ivy-read "Select static file: " #'read-file-name-internal
-              :matcher #'counsel--find-file-matcher
-              :action #'neuron--insert-static-link-action
-              :keymap counsel-find-file-map
-              :caller 'neuron-insert-static-link)))
+(defun neuron-insert-static-link (path)
+  "Insert a link to FILE-NAME in the static directory."
+  (interactive (list (neuron--select-static-file t)))
+  (when path
+    (insert (format "[](%s)" (f-relative path neuron--current-zettelkasten)))))
 
 (defun neuron--insert-zettel-link-from-id (id)
   "Insert a zettel link.
@@ -576,11 +575,10 @@ If REQUIRE-MATCH is non-nil require user input to match an existing
 tag."
   (let* ((tags (neuron--flatten-tag-tree (neuron--query-url-command uri)))
          (selection
-          (ivy-read "Select tag: "
-                    (mapcar #'neuron--propertize-tag tags)
-                    :predicate (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
-                    :caller 'neuron-select-tag
-                    :require-match require-match)))
+          (completing-read "Select tag: "
+                           (mapcar #'neuron--propertize-tag tags)
+                           (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
+                           require-match)))
     (or (get-text-property 0 'tag selection) selection)))
 
 (defun neuron--get-metadata-block-bounds (&optional create-if-missing)
