@@ -123,6 +123,14 @@ of the zettel."
   "Face for zettel IDs in zettels and ivy-read prompts"
   :group 'neuron-faces)
 
+(defface neuron-cf-link-face
+  '((((class color) (min-colors 88) (background dark)) :foreground "burlywood")
+    (((class color) (min-colors 88) (background light)) :foreground "sienna")
+    (t :inherit link))
+  "Face for zettel IDs in zettels and ivy-read prompts"
+  :group 'neuron-faces)
+
+
 (defface neuron-invalid-zettel-id-face
   '((t :inherit error))
   "Face for zettel IDs in zettels and ivy-read prompts"
@@ -935,7 +943,10 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   "Setup a overlay OV from any zettel link QUERY."
   (overlay-put ov 'evaporate t)
   (overlay-put ov 'modification-hooks (list #'neuron--overlay-update))
-  (overlay-put ov 'face 'neuron-link-face)
+  (overlay-put ov 'face
+               (if (eq (alist-get 'conn query) 'folgezettel)
+                   'neuron-link-face
+                 'neuron-cf-link-face))
   (overlay-put ov 'mouse-face 'neuron-link-mouse-face)
   (overlay-put ov 'keymap neuron-mode-mouse-map)
   (when (equal (map-elt query 'type) 'zettel)
