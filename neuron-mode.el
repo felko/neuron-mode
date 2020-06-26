@@ -233,9 +233,12 @@ existing directory, throw an user error."
 
 (defun neuron--make-command (cmd &rest args)
   "Construct a neuron command CMD with argument ARGS."
-  (mapconcat
-   #'shell-quote-argument
-   (append (list neuron-executable "--zettelkasten-dir" neuron--current-zettelkasten cmd) args) " "))
+  (concat
+   neuron-executable
+   " "
+   (mapconcat
+    #'shell-quote-argument
+    (append (list "--zettelkasten-dir" neuron--current-zettelkasten cmd) args) " ")))
 
 (defun neuron--make-query-uri-command (uri)
   "Construct a neuron query command that queries the zettelkasten from URI.
