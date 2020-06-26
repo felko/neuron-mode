@@ -212,8 +212,7 @@ existing directory, throw an user error."
   (neuron-zettelkasten))
 
 (defun neuron--make-command (cmd &rest args)
-  "Construct a neuron command CMD with argument ARGS.
-If the current zettelkasten is ill-defined, return nil."
+  "Construct a neuron command CMD with argument ARGS."
   (mapconcat
    #'shell-quote-argument
    (append (list "neuron" "--zettelkasten-dir" neuron--current-zettelkasten cmd) args) " "))
