@@ -319,7 +319,7 @@ When TITLE is nil, prompt the user."
               (path    (neuron--run-command (apply #'neuron--make-command args))))
     (and
      (neuron--rebuild-cache)
-     (message (concat "Created " (f-filename path)))
+     (message "Created %s" (f-filename path))
      (neuron--get-cached-zettel-from-id (f-base path)))))
 
 (defun neuron-new-zettel (&optional title id)
@@ -421,7 +421,7 @@ PROMPT is the prompt passed to `ivy-read'."
   (if (f-descendant-of? path (f-join "/" neuron--current-zettelkasten "static"))
       (insert (format "[](%s)" (f-relative path neuron--current-zettelkasten)))
     (when
-        (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static?" path neuron--current-zettelkasten))
+        (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static? " path neuron--current-zettelkasten))
       (let ((copied-path (f-join "/" neuron--current-zettelkasten "static" (f-filename path))))
         (copy-file path copied-path)
         (insert (format "[](%s)" (f-relative copied-path neuron--current-zettelkasten)))))))
@@ -452,7 +452,7 @@ the inserted link will either be of the form <ID> or
   "Insert a markdown hypertext link to another zettel."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (neuron--insert-zettel-link-from-id (map-elt (neuron-select-zettel) 'id)))
+  (neuron--insert-zettel-link-from-id (map-elt (neuron-select-zettel "Link zettel: ") 'id)))
 
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
@@ -467,7 +467,7 @@ the inserted link will either be of the form <ID> or
       (neuron--insert-zettel-link-from-id id)
       (pop-to-buffer-same-window buffer)
       (with-current-buffer buffer (neuron-mode))
-      (message (concat "Created " (f-filename path))))))
+      (message "Created %s" (f-filename path)))))
 
 (defun neuron-create-zettel-from-selection ()
   "Transforms the selected text into a new zettel with the selection as a title."
@@ -895,12 +895,12 @@ and algebra/linear/theorem to math/theorem/algebra/linear."
   (let ((current-buffers (neuron-list-buffers)))
     (map-do
      (lambda (_ zettel) (when-let* ((path (map-elt zettel 'path))
-                                     (buffer (find-file-noselect path)))
-                           (with-current-buffer buffer
-                             (neuron--replace-tag-in-current-zettel pattern repl)
-                             (save-buffer))
-                           (unless (member buffer current-buffers)
-                             (kill-buffer buffer))))
+                                    (buffer (find-file-noselect path)))
+                          (with-current-buffer buffer
+                            (neuron--replace-tag-in-current-zettel pattern repl)
+                            (save-buffer))
+                          (unless (member buffer current-buffers)
+                            (kill-buffer buffer))))
      neuron--zettel-cache)
     (message "Replaced all tags")))
 
