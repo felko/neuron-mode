@@ -114,6 +114,8 @@ the web app rather than local files (respectively
 - `neuron-default-zettelkasten-directory` (default: `~/zettelkasten`)
   Defines the fallback zettelkasten when the current directory is not located in
   a zettelkasten.
+- `neuron-executable` (default: `neuron`)
+  Path or wrapper around the neuron executable.
 - `neuron-generate-on-save` (default: `nil`)
   Generates the site when saving a note. Opens a compilation buffer
   (`neuron-rib-generate`)

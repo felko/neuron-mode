@@ -69,6 +69,13 @@
   :type  'boolean
   :safe  'booleanp)
 
+(defcustom neuron-executable "neuron"
+  "Path to the neuron binary or wrapper around the neuron command.
+This might be useful e.g. for Windows users that need to run neuron
+from WSL."
+  :group 'neuron
+  :type  'string)
+
 (defcustom neuron-id-format 'hash
   "The ID format in which new zettels are created.
 'hash will make neuron generate a hexadecimal 8-digit UUID.
@@ -215,7 +222,7 @@ existing directory, throw an user error."
   "Construct a neuron command CMD with argument ARGS."
   (mapconcat
    #'shell-quote-argument
-   (append (list "neuron" "--zettelkasten-dir" neuron--current-zettelkasten cmd) args) " "))
+   (append (list neuron-executable "--zettelkasten-dir" neuron--current-zettelkasten cmd) args) " "))
 
 (defun neuron--make-query-uri-command (uri)
   "Construct a neuron query command that queries the zettelkasten from URI.
