@@ -101,6 +101,11 @@ of the zettel."
   :group 'neuron
   :type  'string)
 
+(defcustom neuron-default-tags nil
+  "List of tags to add to a newly created zettels."
+  :group 'neuron
+  :type  '(repeat string))
+
 (defcustom neuron-daily-note-tags (list "journal/daily")
   "List of tags to add to a newly created daily notes file."
   :group 'neuron
@@ -308,48 +313,50 @@ return nil."
            (list "--id" id)
          (user-error "Invalid ID: %S" id))))))
 
-(defun neuron-create-zettel (title &optional id)
+(defun neuron-create-zettel-buffer (title &optional id no-default-tags)
   "Create a new zettel in the current zettelkasten.
 The new zettel will be generated with the given TITLE and ID if specified.
-When TITLE is nil, prompt the user."
+When TITLE is nil, prompt the user.
+If NO-DEFAULT-TAGS is non-nil, don't add the tags specified the variable
+`neuron-default-tags'."
   (interactive (list (read-string "Title: ")))
   (neuron-check-if-zettelkasten-exists)
-  (when-let* ((id-args (neuron--generate-id-arguments id))
-              (args    (append '("new") id-args (list title)))
-              (path    (neuron--run-command (apply #'neuron--make-command args))))
-    (and
-     (neuron--rebuild-cache)
-     (message "Created %s" (f-filename path))
-     (neuron--get-cached-zettel-from-id (f-base path)))))
+  (when (or (not id) (and id (not (neuron--get-cached-zettel-from-id id))))
+    (let* ((id-args (neuron--generate-id-arguments id))
+           (args    (append id-args (list title)))
+           (path    (neuron--run-command (apply #'neuron--make-command "new" args)))
+           (buffer  (find-file-noselect path)))
+      (unless no-default-tags
+        (with-current-buffer buffer
+          (dolist (tag neuron-default-tags)
+            (neuron-add-tag tag))
+          (save-buffer)))
+      (neuron--rebuild-cache)
+      (message "Created %s" (f-filename path))
+      buffer)))
 
 (defun neuron-new-zettel (&optional title id)
   "Create a new zettel and open it in a new buffer.
 The new zettel will be generated with the given TITLE and ID if specified.
 When TITLE is nil, prompt the user."
   (interactive)
-  (neuron-check-if-zettelkasten-exists)
-  (when-let* ((zettel  (call-interactively #'neuron-create-zettel title id))
-              (buffer  (find-file-noselect (map-elt zettel 'path))))
-    (and
-     (pop-to-buffer-same-window buffer)
-     (with-current-buffer buffer (neuron-mode) buffer))))
+  (if-let (buffer (call-interactively #'neuron-create-zettel-buffer t (vector title id)))
+      (pop-to-buffer-same-window buffer)
+    (user-error "Unable to create zettel %s" id)))
 
 ;;;###autoload
 (defun neuron-open-daily-notes ()
   "Create or open today's daily notes."
   (interactive)
-  (neuron-check-if-zettelkasten-exists)
   (let* ((today  (current-time))
          (zid    (format-time-string neuron-daily-note-id-format today))
          (title  (format-time-string neuron-daily-note-title-format today))
-         (exists (alist-get 'path (neuron--query-zettel-from-id zid)))
-         (path   (or exists (let ((zettel (neuron-create-zettel title zid))) (map-elt zettel 'path))))
-         (buffer (and path (find-file-noselect path))))
+         (new    (neuron-create-zettel-buffer title zid t))
+         (buffer (or new (find-file-noselect (alist-get 'path (neuron--query-zettel-from-id zid))))))
     (and
      (pop-to-buffer-same-window buffer)
      (with-current-buffer buffer
-       (neuron-mode)
-       (unless exists
+       (when new
          (dolist (tag neuron-daily-note-tags)
            (neuron-add-tag tag)))))))
 
@@ -458,27 +465,25 @@ the inserted link will either be of the form <ID> or
   "Create a new zettel."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (when-let* ((zettel (call-interactively 'neuron-create-zettel))
-              (id     (alist-get 'id zettel))
-              (path   (alist-get 'path zettel))
-              (buffer (find-file-noselect path)))
+  (when-let* ((buffer (call-interactively #'neuron-create-zettel-buffer))
+              (id (neuron--get-zettel-id buffer)))
     (progn
       (neuron--rebuild-cache)
       (neuron--insert-zettel-link-from-id id)
       (pop-to-buffer-same-window buffer)
-      (with-current-buffer buffer (neuron-mode))
-      (message "Created %s" (f-filename path)))))
+      (message "Created %s" (buffer-name buffer)))))
 
 (defun neuron-create-zettel-from-selection ()
   "Transforms the selected text into a new zettel with the selection as a title."
   (interactive)
-  (let* ((selection (buffer-substring-no-properties (region-beginning) (region-end)))
-         (title     (funcall neuron-make-title selection))
-         (zettel    (neuron-create-zettel title)))
+  (when-let* ((selection (buffer-substring-no-properties (region-beginning) (region-end)))
+              (title     (funcall neuron-make-title selection))
+              (buffer    (funcall-interactively #'neuron-create-zettel-buffer title))
+              (id        (neuron--get-zettel-id buffer)))
     (save-excursion
-      (call-interactively #'delete-region)
+      (delete-region (region-beginning) (region-end))
       (goto-char (region-beginning))
-      (insert (neuron--insert-zettel-link-from-id (alist-get 'id zettel)))
+      (neuron--insert-zettel-link-from-id id)
       (neuron--setup-overlays))))
 
 (defun neuron-create-and-insert-zettel-link (no-prompt)
@@ -500,7 +505,8 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
       ((pred stringp)
        (when (or no-prompt
                  (y-or-n-p (concat "Create a new zettel (" selection ")? ")))
-         (let ((id (map-elt (neuron-create-zettel selection) 'id)))
+         (let* ((buffer (neuron-create-zettel-buffer selection))
+                (id     (neuron--get-zettel-id buffer)))
            (neuron--rebuild-cache)
            (neuron--insert-zettel-link-from-id id)))))))
 
@@ -657,9 +663,10 @@ the cache when the ID is not found."
   "Select and edit a zettel from a neuron query URI."
   (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
 
-(defun neuron--get-current-zettel-id ()
-  "Extract the zettel ID of the current file."
-  (f-base (buffer-name)))
+(defun neuron--get-zettel-id (buffer)
+  "Extract the zettel ID of BUFFER."
+  (interactive "b")
+  (f-base (buffer-name buffer)))
 
 (defun neuron--open-page (rel-path)
   "Open the REL-PATH in the browser.
@@ -688,7 +695,7 @@ The path is relative to the neuron output directory."
   "Open the current zettel's HTML file in the browser."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (neuron--open-zettel-from-id (neuron--get-current-zettel-id)))
+  (neuron--open-zettel-from-id (call-interactively #'neuron--get-zettel-id)))
 
 (defconst neuron-link-regex
   (concat "<\\(z:" thing-at-point-url-path-regexp "\\|[A-Za-z0-9-_]+\\(?:\?[^][\t\n\\ {}]*\\)?\\)>")
@@ -838,7 +845,7 @@ QUERY is an alist containing at least the query type and the URL."
   (kill-buffer "*rib*"))
 
 (defconst neuron-tag-component-regex
-  (concat "[A-Za-z0-9-_]+")
+  "[A-Za-z0-9-_]+"
   "Regex matching a tag component.")
 
 (defun neuron--make-tag-pattern-component-regex (component &optional leading-slash)
@@ -982,7 +989,6 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   "Automatically switch to neuron-mode when located in a zettelkasten."
   (when (and (eq major-mode 'markdown-mode)
              (neuron--detect-zettelkasten (f-parent buffer-file-name)))
-    (message "Automatically switched to neuron-mode")
     (neuron-mode)))
 
 (add-hook 'markdown-mode-hook #'neuron--auto-enable-when-in-zettelkasten t nil)
