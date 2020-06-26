@@ -111,11 +111,14 @@ the web app rather than local files (respectively
 
 ### Customize settings
 
-- `neuron-default-zettelkasten-directory` (default: `~/zettelkasten`)
+- `neuron-default-zettelkasten-directory` (default: `"~/zettelkasten`)
   Defines the fallback zettelkasten when the current directory is not located in
   a zettelkasten.
 - `neuron-executable` (default: `neuron`)
   Path or wrapper around the neuron executable.
+  Example: this can be useful when using Emacs from Windows,
+  while having neuron installed on WSL, in which case you can
+  set `neuron-executable` to `wsl neuron`.
 - `neuron-generate-on-save` (default: `nil`)
   Generates the site when saving a note. Opens a compilation buffer
   (`neuron-rib-generate`)
@@ -125,12 +128,16 @@ the web app rather than local files (respectively
   - `'hash`: generates an unique 32 bit UUID (default behavior of neuron)
   - `'date`: generates an ID based on the date of creation
   - `'prompt`: asks for the ID when creating a new zettel
+- `neuron-default-tags` (default: `nil`)
+  A list of tags to add to zettels when they are created.
+  This does not affect daily notes.
+  Example: `stub` (to mimic [Wikipedia's stubs](https://en.wikipedia.org/wiki/Wikipedia:Stub))
 - `neuron-daily-note-id-format` (default: `"%Y-%m-%d"`)
   Format that controls the filenames of newly created daily notes
 - `neuron-daily-note-title-format` (default: `"%x"`)
   The format of titles for new daily notes
 - `neuron-daily-note-tags` (default: `(list "journal/daily")`)
-  The default tag of daily notes
+  The default tag of daily notes.
 
 ### Other variables
 
