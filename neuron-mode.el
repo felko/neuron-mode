@@ -674,7 +674,7 @@ the cache when the ID is not found."
   "Select and edit a zettel from a neuron query URI."
   (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
 
-(defun neuron--get-zettel-id (buffer)
+(defun neuron--get-zettel-id (&optional buffer)
   "Extract the zettel ID of BUFFER."
   (interactive "b")
   (f-base (buffer-name buffer)))
@@ -706,7 +706,7 @@ The path is relative to the neuron output directory."
   "Open the current zettel's HTML file in the browser."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (neuron--open-zettel-from-id (call-interactively #'neuron--get-zettel-id)))
+  (neuron--open-zettel-from-id (funcall-interactively #'neuron--get-zettel-id)))
 
 (defconst neuron-link-regex
   (concat "<\\(z:" thing-at-point-url-path-regexp "\\|[A-Za-z0-9-_]+\\(?:\?[^][\t\n\\ {}]*\\)?\\)>")
