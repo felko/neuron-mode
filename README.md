@@ -134,9 +134,9 @@ the web app rather than local files (respectively
   Example: `stub` (to mimic [Wikipedia's stubs](https://en.wikipedia.org/wiki/Wikipedia:Stub))
 - `neuron-daily-note-id-format` (default: `"%Y-%m-%d"`) \
   Format that controls the filenames of newly created daily notes
-- `neuron-daily-note-title-format` (default: `"%x"`)
+- `neuron-daily-note-title-format` (default: `"%x"`) \
   The format of titles for new daily notes
-- `neuron-daily-note-tags` (default: `(list "journal/daily")`)
+- `neuron-daily-note-tags` (default: `(list "journal/daily")`) \
   The default tag of daily notes.
 
 ### Other variables
