@@ -532,7 +532,7 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
                 (query (neuron--parse-query-from-url-or-id link))
                 (conn (alist-get 'conn query))
                 (toggled (if (eq conn 'ordinary) 'folgezettel 'ordinary))
-                (new-query (map-insert (map-delete query 'conn) 'conn toggled)))
+                (new-query (progn (map-put query 'conn toggled) query)))
           (save-excursion
             (goto-char start)
             (delete-region start end)
