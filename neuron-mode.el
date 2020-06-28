@@ -645,7 +645,6 @@ tag."
 (defun neuron-query-tags (&rest tags)
   "Select and edit a zettel from those that are tagged by TAGS."
   (interactive (list (neuron-select-tag t)))
-  (neuron-check-if-zettelkasten-exists)
   (let ((query (mapconcat (lambda (tag) (format "tag=%s" tag)) tags "&")))
     (neuron--edit-zettel-from-query (format "z:zettels?%s" query))))
 
@@ -766,6 +765,7 @@ the map features an `'url' field."
        ;; Probably just an ID
        `((type . zettel) (id . ,path))))))
 
+;; FIXME avoid hexifying link
 (defun neuron-render-query (query)
   "Render a neuron query in markdown.
 QUERY is an alist containing at least the query type and the URL."
@@ -1019,7 +1019,6 @@ link is a folgezettel of ordinary connection."
     (add-hook 'after-save-hook #'neuron-rib-generate t t))
   (add-hook 'after-save-hook #'neuron--setup-overlays t t)
   (neuron--setup-overlays)
-  (neuron--rebuild-cache)
   (use-local-map neuron-mode-map))
 
 (defun neuron--auto-enable-when-in-zettelkasten ()
