@@ -381,13 +381,10 @@ When TITLE is nil, prompt the user."
 
 (defun neuron--propertize-zettel (zettel)
   "Format ZETTEL as shown in the selection prompt."
-  (let* ((zid (map-elt zettel 'id))
-         (display
-          (format "%s %s %s"
-                  (neuron--style-zettel-id zid)
-                  (map-elt zettel 'title)
-                  (neuron--style-tags (map-elt zettel 'tags)))))
-    (propertize display 'zettel zettel)))
+  (let ((id (alist-get 'id zettel))
+        (title (alist-get 'title zettel))
+        (tags (alist-get 'tags zettel)))
+    (format "%s %s %s" (neuron--style-zettel-id id) title (neuron--style-tags tags))))
 
 (defun neuron--select-zettel-from-list (zettels &optional prompt require-match)
   "Select a zettel from a given list.
@@ -399,7 +396,8 @@ non-nil require the input to match an existing zettel."
                            (mapcar #'neuron--propertize-zettel zettels)
                            nil
                            require-match)))
-    (or (get-text-property 0 'zettel selection) selection)))
+    (string-match (eval `(rx bos (regexp ,neuron-link-regex))) selection)
+    (neuron--get-cached-zettel-from-id (match-string 1 selection))))
 
 (defun neuron--select-zettel-from-cache (&optional prompt)
   "Select a zettel from the current cache.
@@ -564,22 +562,26 @@ The full tag is retrieved from the ROOT argument that is passed recursively."
 (defun neuron--propertize-tag (elem)
   "Format ELEM as shown in the tag selection prompt.
 ELEM is a map containing the name of the tag and the number of associated zettels."
-  (let* ((tag   (map-elt elem 'tag))
-         (count (map-elt elem 'count))
+  (let* ((tag   (alist-get 'tag elem))
+         (count (alist-get 'count elem))
          (display-count (propertize (format "(%d)" count) 'face 'shadow)))
-    (propertize (format "%s %s" tag display-count) 'tag tag 'count count)))
+    (format "%s %s" tag display-count))) ;; 'tag tag 'count count))
 
 (defun neuron--select-tag-from-query (uri &optional require-match)
   "Prompt for a tag that is matched by the zquery URI.
-If REQUIRE-MATCH is non-nil require user input to match an existing
-tag."
+If REQUIRE-MATCH is non-nil require user input to match an existing tag."
   (let* ((tags (neuron--flatten-tag-tree (neuron--query-url-command uri)))
+         (tag-display-regex (eval `(rx (group (regexp ,neuron-tag-regex)) " " (char "(") (group (+ digit)) (char ")"))))
+         (filter (lambda (tag-display)
+                   (when (string-match tag-display-regex tag-display)
+                     (not (zerop (string-to-number (match-string 2 tag-display)))))))
          (selection
           (completing-read "Select tag: "
                            (mapcar #'neuron--propertize-tag tags)
-                           (lambda (tag) (not (zerop (get-text-property 0  'count tag))))
+                           filter
                            require-match)))
-    (or (get-text-property 0 'tag selection) selection)))
+    (string-match (eval `(rx bos (regexp ,neuron-tag-regex))) selection)
+    (match-string 0 selection)))
 
 (defun neuron--get-metadata-block-bounds (&optional create-if-missing)
   "Return the bounds of the metadata block.
@@ -856,6 +858,10 @@ QUERY is an alist containing at least the query type and the URL."
 (defconst neuron-tag-component-regex
   "[A-Za-z0-9-_]+"
   "Regex matching a tag component.")
+
+(defconst neuron-tag-regex
+  (eval `(rx (* (regexp ,neuron-tag-component-regex) "/") (regexp ,neuron-tag-component-regex)))
+  "Regex matching a possibly hierarchical tag.")
 
 (defun neuron--make-tag-pattern-component-regex (component &optional leading-slash)
   "Translate the component COMPONENT of a tag pattern into a regex.
