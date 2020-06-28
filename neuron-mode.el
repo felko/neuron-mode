@@ -116,17 +116,10 @@ of the zettel."
   :group 'faces)
 
 (defface neuron-link-face
-  '((((class color) (min-colors 88) (background dark)) :foreground "orange1")
-    (((class color) (min-colors 88) (background light)) :foreground "orange3")
-    (t :inherit link))
-  "Face for zettel IDs in zettels and prompts"
-  :group 'neuron-faces)
-
-(defface neuron-cf-link-face
   '((((class color) (min-colors 88) (background dark)) :foreground "burlywood")
     (((class color) (min-colors 88) (background light)) :foreground "sienna")
     (t :inherit link))
-  "Face for ordinary connected links."
+  "Face for zettel IDs in zettels and prompts"
   :group 'neuron-faces)
 
 (defface neuron-invalid-zettel-id-face
@@ -140,11 +133,19 @@ of the zettel."
   :group 'neuron-faces)
 
 (defface neuron-title-overlay-face
-  '((((class color) (min-colors 88) (background dark)) :foreground "MistyRose2")
-    (((class color) (min-colors 88) (background light)) :foreground "LightSlateGrey")
-    (((class color) :foreground "grey"))
+  '((((class color) (min-colors 88) (background dark)) :foreground "MistyRose2" :underline "MistyRose2")
+    (((class color) (min-colors 88) (background light)) :foreground "MistyRose4" :underline "MistyRose4")
+    (((class color) :foreground "grey" :underline "grey"))
     (t :inherit italic))
-  "Face for title overlays displayed next to short links."
+  "Face for title overlays displayed with folgezettel links."
+  :group 'neuron-faces)
+
+(defface neuron-cf-title-overlay-face
+  '((((class color) (min-colors 88) (background dark)) :foreground "MistyRose3" :underline "MistyRose3")
+    (((class color) (min-colors 88) (background light)) :foreground "ivory4" :underline "ivory4")
+    (((class color) :foreground "grey" :underline "grey"))
+    (t :inherit italic))
+  "Face for title overlays displayed with ordinary-connected links."
   :group 'neuron-faces)
 
 (defface neuron-invalid-link-face
@@ -167,6 +168,11 @@ of the zettel."
 This function is called by `neuron-create-zettel-from-selection' to
 generate a title for the new zettel, it passes the selected text as
 an argument.")
+
+(defvar neuron-show-ids nil
+  "Whether to show IDs next to zettel titles.
+Applies both in neuron-mode buffers and in the completion minibuffer when
+selecting a zettel. Can be toggled using `neuron-toggle-id-visibility'.")
 
 (defvar neuron--current-zettelkasten nil
   "The currently active zettelkasten.
@@ -926,12 +932,19 @@ and algebra/linear/theorem to math/theorem/algebra/linear."
      neuron--zettel-cache)
     (message "Replaced all tags")))
 
-(defun neuron--setup-overlay-from-id (ov zid)
+(defun neuron--setup-overlay-from-id (ov id conn)
   "Setup a single title overlay from a zettel ID.
-OV is the overay to setup or update and ZID is the zettel ID."
-  (if-let* ((zettel (ignore-errors (neuron--get-cached-zettel-from-id zid)))
-            (title  (map-elt zettel 'title)))
-      (overlay-put ov 'after-string (format " %s" (propertize title 'face 'neuron-title-overlay-face)))
+OV is the overay to setup or update and CONN described whether the link is a
+folgezettel or an ordinary connection."
+  (if-let* ((zettel (ignore-errors (neuron--get-cached-zettel-from-id id)))
+            (title (map-elt zettel 'title))
+            (title-face (if (eq conn 'folgezettel) 'neuron-title-overlay-face 'neuron-cf-title-overlay-face)))
+      (if neuron-show-ids
+          (progn
+            (overlay-put ov 'display nil)
+            (overlay-put ov 'after-string (format " %s" (propertize title 'face title-face))))
+        (overlay-put ov 'after-string nil)
+        (overlay-put ov 'display (format "%s" (propertize title 'face title-face))))
     (overlay-put ov 'after-string (format " %s" (propertize "Unknown ID" 'face 'neuron-invalid-zettel-id-face)))
     (overlay-put ov 'face 'neuron-invalid-link-face)))
 
@@ -950,14 +963,11 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   "Setup a overlay OV from any zettel link QUERY."
   (overlay-put ov 'evaporate t)
   (overlay-put ov 'modification-hooks (list #'neuron--overlay-update))
-  (overlay-put ov 'face
-               (if (eq (alist-get 'conn query) 'folgezettel)
-                   'neuron-link-face
-                 'neuron-cf-link-face))
+  (overlay-put ov 'face 'neuron-link-face)
   (overlay-put ov 'mouse-face 'neuron-link-mouse-face)
   (overlay-put ov 'keymap neuron-mode-mouse-map)
   (when (equal (map-elt query 'type) 'zettel)
-    (neuron--setup-overlay-from-id ov (map-elt query 'id))))
+    (neuron--setup-overlay-from-id ov (map-elt query 'id) (alist-get 'conn query))))
 
 (defun neuron--setup-overlays ()
   "Setup title overlays on zettel links."
@@ -968,6 +978,14 @@ When AFTER is non-nil, this hook is being called after the update occurs."
       (let ((ov    (make-overlay (match-beginning 0) (match-end 0) nil t nil))
             (query (neuron--parse-query-from-url-or-id (match-string 1))))
         (neuron--setup-overlay-from-query ov query)))))
+
+(defun neuron-toggle-id-visiblity ()
+  "Toggle the visibility of IDs in simple links.
+This can be useful to debug when searching for ID, explicitly seeing whether the
+link is a folgezettel of ordinary connection."
+  (setq neuron-show-ids (not neuron-show-ids))
+  (dolist (buffer (neuron-list-buffers))
+    (with-current-buffer buffer (neuron--setup-overlays))))
 
 (defvar neuron-mode-map nil "Keymap for `neuron-mode'.")
 

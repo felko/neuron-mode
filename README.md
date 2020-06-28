@@ -99,6 +99,7 @@ the web app rather than local files (respectively
 | `neuron-toggle-connection-type`          | N/A             | Toggle the connection type under point, between cf and folgezettel        |
 | `neuron-open-daily-notes`                | N/A             | Open today's notes if it exists, or create it otherwise                   |
 | `neuron-refresh`                         | `C-c C-S-r`     | Regenerate the zettel cache and title overlays in all neuron-mode buffers |
+| `neuron-toggle-id-visibility`            | N/A             | Toggle between showing the titles next to the IDs or over them            |
 | `neuron-follow-thing-at-point`           | `C-c C-o`       | Override `markdown-follow-thing-at-point` to handle zettel URI protocol   |
 | `neuron-edit-zettelkasten-configuration` | N/A             | Open the neuron.dhall file at the root of the current zettelkasten        |
 | `neuron-rib-generate`                    | N/A             | Perform a one-off generation of the site                                  |
@@ -141,9 +142,12 @@ the web app rather than local files (respectively
 
 ### Other variables
 
-- `neuron-make-title` (default: capitalizes the first word)
-  A function that is called by `neuron-create-zettel-from-selection`
-  to transform the text into the actual title of the new zettel.
+- `neuron-make-title` (default: capitalizes the first word) \
+  A function that is called by `neuron-create-zettel-from-selection` to
+  transform the text into the actual title of the new zettel.
+- `neuron-show-ids` (default: `nil`) \
+  Whether to show the IDs next to zettel titles, rather than having the titles
+  completely hide them. Can be toggled using `neuron-toggle-id-visibility`.
 
 ## Appendix: doom-emacs configuration
 
