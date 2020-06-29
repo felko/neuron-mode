@@ -397,13 +397,17 @@ When TITLE is nil, prompt the user."
 ZETTELS is a list of maps containing zettels (keys: id, title, day, tags, path)
 PROMPT is the prompt passed to `completing-read'.  When REQUIRE-MATCH is
 non-nil require the input to match an existing zettel."
-  (let* ((selection
-          (completing-read (or prompt "Select Zettel: ")
-                           (mapcar #'neuron--propertize-zettel zettels)
-                           nil
-                           require-match)))
-    (string-match (eval `(rx bos (regexp ,neuron-link-regex))) selection)
-    (neuron--get-cached-zettel-from-id (match-string 1 selection))))
+  (let ((selection
+         (completing-read (or prompt "Select Zettel: ")
+                          (mapcar #'neuron--propertize-zettel zettels)
+                          nil
+                          require-match)))
+    (if (string-match (eval `(rx bos (regexp ,neuron-link-regex))) selection)
+        ;; The selection is among the candidates
+        (neuron--get-cached-zettel-from-id (match-string 1 selection))
+      (unless require-match
+        (let ((buffer (neuron-create-zettel-buffer selection)))
+          (neuron--get-cached-zettel-from-id (neuron--get-zettel-id buffer)))))))
 
 (defun neuron--select-zettel-from-cache (&optional prompt)
   "Select a zettel from the current cache.
