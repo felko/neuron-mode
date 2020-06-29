@@ -456,11 +456,12 @@ otherwise return nil."
          (path (read-file-name "Select static file: " static-dir nil t)))
     (if (f-descendant-of? path static-dir)
         path
-      (when
-          (y-or-n-p (format "File %s is not in the static directory, copy it to %s/static? " path root))
+      (if (and allow-copy
+               (y-or-n-p (format "File %s is not in the static directory, copy it to %sstatic? " path root)))
         (let ((copied-path (f-join "/" static-dir (f-filename path))))
           (copy-file path copied-path)
-          copied-path)))))
+          copied-path)
+        (user-error "File %s is not in %sstatic" path root)))))
 
 (defun neuron-insert-static-link (path)
   "Insert a link to FILE-NAME in the static directory."
@@ -583,8 +584,9 @@ ELEM is a map containing the name of the tag and the number of associated zettel
          (display-count (propertize (format "(%d)" count) 'face 'shadow)))
     (format "%s %s" tag display-count))) ;; 'tag tag 'count count))
 
-(defun neuron--select-tag-from-query (uri &optional require-match)
+(defun neuron--select-tag-from-query (uri &optional prompt require-match)
   "Prompt for a tag that is matched by the zquery URI.
+PROMPT is the prompt that appears when asked to select the tag.
 If REQUIRE-MATCH is non-nil require user input to match an existing tag."
   (let* ((tags (neuron--flatten-tag-tree (neuron--query-url-command uri)))
          (tag-display-regex (eval `(rx (group (regexp ,neuron-tag-regex)) " " (char "(") (group (+ digit)) (char ")"))))
@@ -592,7 +594,7 @@ If REQUIRE-MATCH is non-nil require user input to match an existing tag."
                    (when (string-match tag-display-regex tag-display)
                      (not (zerop (string-to-number (match-string 2 tag-display)))))))
          (selection
-          (completing-read "Select tag: "
+          (completing-read (or prompt "Select tag: ")
                            (mapcar #'neuron--propertize-tag tags)
                            filter
                            require-match)))
@@ -630,27 +632,35 @@ If FIELD does not exist it is created."
       (end-of-line)
       (insert (concat "\n" field ": ")))))
 
+(defun neuron-select-tag (&optional prompt require-match)
+  "Prompt for a tag that is already used in the zettelkasten.
+PROMPT is the prompt passed to `completing-read'.
+If REQUIRE-MATCH is non-nil require user input to match an existing
+tag."
+  (neuron-check-if-zettelkasten-exists)
+  (neuron--select-tag-from-query "z:tags" prompt require-match))
+
+(defun neuron-select-multiple-tags (&optional prompt)
+  "Select multiple tags as a comma-separated list.
+PROMPT is the prompt passed to `completing-read'."
+  (let* ((query-result (neuron--flatten-tag-tree (neuron--query-url-command "z:tags")))
+         (tags (mapcar (lambda (el) (alist-get 'tag el)) query-result)))
+    (completing-read-multiple (or prompt "Select tags: ") tags)))
+
+(defun neuron-add-tags (tags)
+  "Add multiple TAGS to the tags metadata field.
+When called interactively it promps for multiple comma-separated tags."
+  (interactive (list (neuron-select-multiple-tags)))
+  (save-excursion
+    (neuron--navigate-to-metadata-field "tags")
+    (dolist (tag tags)
+      (insert (format "\n  - %s" tag)))))
+
 (defun neuron-add-tag (tag)
   "Add TAG to the list of tags.
 When called interactively this command prompts for a tag."
   (interactive (list (neuron-select-tag)))
-  (save-excursion
-    (neuron--navigate-to-metadata-field "tags")
-    (insert (concat "\n  - " tag)))
-  (neuron--rebuild-cache))
-
-(defun neuron-select-tag (&optional require-match)
-  "Prompt for a tag that is already used in the zettelkasten.
-If REQUIRE-MATCH is non-nil require user input to match an existing
-tag."
-  (neuron-check-if-zettelkasten-exists)
-  (neuron--select-tag-from-query "z:tags" require-match))
-
-(defun neuron-insert-tag ()
-  "Select and insert a tag that is already used in the zettelkasten."
-  (interactive)
-  (neuron-check-if-zettelkasten-exists)
-  (insert (neuron-select-tag)))
+  (neuron-add-tags (list tag)))
 
 (defun neuron-query-tags (&rest tags)
   "Select and edit a zettel from those that are tagged by TAGS."
@@ -746,7 +756,7 @@ QUERY is a query object as described in `neuron--parse-query-from-url-or-id'."
     (pcase (map-elt query 'type)
       ('zettel  (neuron--edit-zettel-from-id (map-elt query 'id)))
       ('zettels (neuron--edit-zettel-from-query url))
-      ('tags    (neuron-query-tags (neuron--select-tag-from-query url))))))
+      ('tags    (neuron-query-tags (neuron--select-tag-from-query url "Search by tag: "))))))
 
 (defun neuron--parse-query-from-url-or-id (url-or-id)
   "Parse a neuron URL or a raw zettel ID as an object representing the query.
