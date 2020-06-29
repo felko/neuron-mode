@@ -1015,8 +1015,8 @@ link is a folgezettel of ordinary connection."
 
   (define-key neuron-mode-map (kbd "C-c C-z")   #'neuron-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-e")   #'neuron-edit-zettel)
-  (define-key neuron-mode-map (kbd "C-c C-t")   #'neuron-insert-tag)
-  (define-key neuron-mode-map (kbd "C-c C-S-t") #'neuron-query-tags)
+  (define-key neuron-mode-map (kbd "C-c C-t")   #'neuron-add-tag)
+  (define-key neuron-mode-map (kbd "C-c C-S-t") #'neuron-add-tags)
   (define-key neuron-mode-map (kbd "C-c C-l")   #'neuron-insert-zettel-link)
   (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-s")   #'neuron-insert-static-link)

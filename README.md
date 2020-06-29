@@ -65,8 +65,8 @@ prompt you to select an existing zettel in the active zettelkasten. Zettels can
 also be linked and created on the fly by using `neuron-insert-new-zettel`.
 
 To avoid typos in tags which might mess up the organization of your
-zettelkasten, use `neuron-add-tag` which will allow you to select from
-already existing tags.
+zettelkasten, use `neuron-add-tag`/`neuron-add-tags` which will allow you to
+select from already existing tags.
 
 #### Using rib
 
@@ -92,7 +92,8 @@ the web app rather than local files (respectively
 | `neuron-edit-zettel`                     | `C-c C-e`       | Select an existing zettel and open it for editing                         |
 | `neuron-edit-uplink`                     | N/A             | Select and edit a zettel that links to the current one                    |
 | `neuron-add-tag`                         | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block       |
-| `neuron-query-tag`                       | `C-c C-S-t`     | Select a tag and then a zettel with that tag                              |
+| `neuron-add-tags`                        | `C-c C-S-t`     | Same as `neuron-add-tag` but adds multiple tags simultaneously            |
+| `neuron-query-tag`                       | N/A             | Select a tag and then a zettel with that tag                              |
 | `neuron-replace-tag`                     | N/A             | Replace a tag by another across the entire zettelkasten                   |
 | `neuron-open-current-zettel`             | `C-c C-r`       | Open the current zettel's generated HTML file in the browser              |
 | `neuron-insert-zettel-link`              | `C-c C-l`       | Search a zettel by content and insert the link at point                   |
