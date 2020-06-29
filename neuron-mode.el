@@ -464,7 +464,7 @@ otherwise return nil."
         (user-error "File %s is not in %sstatic" path root)))))
 
 (defun neuron-insert-static-link (path)
-  "Insert a link to FILE-NAME in the static directory."
+  "Insert a link to PATH in the static directory."
   (interactive (list (neuron--select-static-file t)))
   (when path
     (insert (format "[](%s)" (f-relative path neuron--current-zettelkasten)))))
