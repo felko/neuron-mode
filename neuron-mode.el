@@ -420,16 +420,26 @@ PROMPT is the prompt passed to `completing-read'."
   (neuron-check-if-zettelkasten-exists)
   (neuron--select-zettel-from-cache prompt))
 
-(defun neuron-edit-zettel ()
-  "Select and edit a zettel from the currently active zettelkasten."
-  (interactive)
-  (neuron-check-if-zettelkasten-exists)
-  (let* ((zettel (neuron-select-zettel "Edit zettel: "))
-         (path   (map-elt zettel 'path))
+(defun neuron-edit-zettel (zettel)
+  "Select and edit ZETTEL."
+  (interactive (list (neuron-select-zettel "Edit zettel: ")))
+  (let* ((path   (map-elt zettel 'path))
          (buffer (find-file-noselect path)))
     (and
      (pop-to-buffer-same-window buffer)
      (neuron-mode))))
+
+(defun neuron--get-uplinks-from-id (id)
+  "Get the list of zettels that point to the zettel ID."
+  (neuron--read-query-result (neuron--run-command (neuron--make-command "query" "--uplinks-of" id))))
+
+(defun neuron-edit-uplink ()
+  "Select and edit a zettel among the ones that link to the current zettel."
+  (interactive)
+  (neuron-check-if-zettelkasten-exists)
+  (let* ((id (neuron--get-zettel-id))
+         (uplinks (neuron--get-uplinks-from-id id)))
+    (neuron-edit-zettel (neuron--select-zettel-from-list uplinks "Edit uplink: " t))))
 
 (defun neuron-edit-zettelkasten-configuration ()
   "Open the neuron.dhall configuration file at the root of the zettelkasten."
