@@ -423,11 +423,7 @@ PROMPT is the prompt passed to `completing-read'."
 (defun neuron-edit-zettel (zettel)
   "Select and edit ZETTEL."
   (interactive (list (neuron-select-zettel "Edit zettel: ")))
-  (let* ((path   (map-elt zettel 'path))
-         (buffer (find-file-noselect path)))
-    (and
-     (pop-to-buffer-same-window buffer)
-     (neuron-mode))))
+  (neuron--edit-zettel-from-path (alist-get 'path zettel)))
 
 (defun neuron--get-uplinks-from-id (id)
   "Get the list of zettels that point to the zettel ID."
@@ -660,8 +656,9 @@ tag."
 
 (defun neuron--edit-zettel-from-path (path)
   "Open a neuron zettel from PATH."
-  (pop-to-buffer-same-window (find-file-noselect path))
-  (neuron-mode))
+  (let ((buffer (find-file-noselect path)))
+    (pop-to-buffer-same-window buffer)
+    (neuron-mode)))
 
 (defun neuron--query-zettel-from-id (id)
   "Query a single zettel from the active zettelkasten from its ID.

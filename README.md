@@ -44,6 +44,9 @@ neuron links can also be followed using `neuron-follow-thing-at-point`.
 For queries, it will prompt you to select a zettel that match the query
 under the point.
 
+Navigating "upwards" is also possible, using the `neuron-edit-uplink`
+function.
+
 #### Searching
 
 The `neuron-edit-zettel` will prompt you with the list of zettels, where
@@ -86,7 +89,8 @@ the web app rather than local files (respectively
 | Command                                  | Default binding | Description                                                               |
 | :--------------------------------------- | :-------------- | :------------------------------------------------------------------------ |
 | `neuron-new-zettel`                      | `C-c C-z`       | Create a new zettel and open it for edition                               |
-| `neuron-edit-zettel`                     | `C-c C-e`       | Select an existing zettel and open it for edition                         |
+| `neuron-edit-zettel`                     | `C-c C-e`       | Select an existing zettel and open it for editing                         |
+| `neuron-edit-uplink`                     | N/A             | Select and edit a zettel that links to the current one                    |
 | `neuron-add-tag`                         | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block       |
 | `neuron-query-tag`                       | `C-c C-S-t`     | Select a tag and then a zettel with that tag                              |
 | `neuron-replace-tag`                     | N/A             | Replace a tag by another across the entire zettelkasten                   |
