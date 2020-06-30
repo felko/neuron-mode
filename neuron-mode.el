@@ -961,13 +961,13 @@ OV is the overay to setup or update and CONN described whether the link is a
 folgezettel or an ordinary connection."
   (if-let* ((zettel (ignore-errors (neuron--get-cached-zettel-from-id id)))
             (title (map-elt zettel 'title))
-            (title-face (if (eq conn 'folgezettel) 'neuron-title-overlay-face 'neuron-cf-title-overlay-face)))
+            (title-suffix (if (eq conn 'folgezettel) " ᛦ" "")))
       (if neuron-show-ids
           (progn
             (overlay-put ov 'display nil)
             (overlay-put ov 'after-string (format " %s" (propertize title 'face title-face))))
         (overlay-put ov 'after-string nil)
-        (overlay-put ov 'display (format "%s" (propertize title 'face title-face))))
+        (overlay-put ov 'display (format "%s%s" (propertize title 'face 'neuron-title-overlay-face) title-suffix)))
     (overlay-put ov 'after-string (format " %s" (propertize "Unknown ID" 'face 'neuron-invalid-zettel-id-face)))
     (overlay-put ov 'face 'neuron-invalid-link-face)))
 
