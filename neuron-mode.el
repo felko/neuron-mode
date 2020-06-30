@@ -1014,6 +1014,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   "Toggle the visibility of IDs in simple links.
 This can be useful to debug when searching for ID, explicitly seeing whether the
 link is a folgezettel of ordinary connection."
+  (interactive)
   (setq neuron-show-ids (not neuron-show-ids))
   (dolist (buffer (neuron-list-buffers))
     (with-current-buffer buffer (neuron--setup-overlays))))
