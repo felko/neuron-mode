@@ -664,7 +664,7 @@ When called interactively this command prompts for a tag."
 
 (defun neuron-query-tags (&rest tags)
   "Select and edit a zettel from those that are tagged by TAGS."
-  (interactive (list (neuron-select-tag t)))
+  (interactive (list (neuron-select-tag "Search by tag: " t)))
   (let ((query (mapconcat (lambda (tag) (format "tag=%s" tag)) tags "&")))
     (neuron--edit-zettel-from-query (format "z:zettels?%s" query))))
 
