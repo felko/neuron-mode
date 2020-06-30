@@ -165,7 +165,7 @@ of the zettel."
       (call-interactively #'capitalize-dwim)
       (buffer-string)))
   "Postprocess the selected text to make the title of zettels.
-This function is called by `neuron-create-zettel-from-selection' to
+This function is called by `neuron-create-zettel-from-selected-title' to
 generate a title for the new zettel, it passes the selected text as
 an argument.")
 
@@ -458,9 +458,9 @@ otherwise return nil."
         path
       (if (and allow-copy
                (y-or-n-p (format "File %s is not in the static directory, copy it to %sstatic? " path root)))
-        (let ((copied-path (f-join "/" static-dir (f-filename path))))
-          (copy-file path copied-path)
-          copied-path)
+          (let ((copied-path (f-join "/" static-dir (f-filename path))))
+            (copy-file path copied-path)
+            copied-path)
         (user-error "File %s is not in %sstatic" path root)))))
 
 (defun neuron-insert-static-link (path)
@@ -498,11 +498,13 @@ the inserted link will either be of the form <ID> or
       (pop-to-buffer-same-window buffer)
       (message "Created %s" (buffer-name buffer)))))
 
-(defun neuron-create-zettel-from-selection ()
+(defun neuron-create-zettel-from-selected-title ()
   "Transforms the selected text into a new zettel with the selection as a title."
   (interactive)
   (when-let* ((selection (buffer-substring-no-properties (region-beginning) (region-end)))
-              (title     (funcall neuron-make-title selection))
+              (title     (if (s-blank? selection)
+                             (user-error "Cannot create zettel: empty title")
+                           (funcall neuron-make-title selection)))
               (buffer    (funcall-interactively #'neuron-create-zettel-buffer title))
               (id        (neuron--get-zettel-id buffer)))
     (save-excursion
