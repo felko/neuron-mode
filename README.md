@@ -138,6 +138,10 @@ the web app rather than local files (respectively
   A list of tags to add to zettels when they are created.
   This does not affect daily notes. \
   Example: `stub` (to mimic [Wikipedia's stubs](https://en.wikipedia.org/wiki/Wikipedia:Stub))
+- `neuron-tag-specific-title-faces` (default: `nil`) \
+  An alist that associates tags to faces, which will appear in the title overlay
+  when a link points to a zettel that has the corresponding tag.
+  Example: `'(("stub" hl-todo))`
 - `neuron-daily-note-id-format` (default: `"%Y-%m-%d"`) \
   Format that controls the filenames of newly created daily notes
 - `neuron-daily-note-title-format` (default: `"%x"`) \
