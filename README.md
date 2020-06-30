@@ -160,7 +160,7 @@ doom-emacs users can use this configuration to work with `neuron-mode`:
 
 <https://gist.github.com/felko/cdb3fc19b3a60db27eb3c5bd319fc479>
 
-(include those files in `.doom.d/modules/tools/neuron`)
+(include those files in `.emacs.d/modules/tools/neuron`)
 
 This creates a private module that can then be enabled by
 inserting `neuron` under the `:tools` section of your `doom!`
