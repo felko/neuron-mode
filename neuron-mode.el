@@ -110,6 +110,12 @@ of the zettel."
   :group 'neuron
   :type  '(repeat string))
 
+(defcustom neuron-tag-specific-title-faces nil
+  "Faces for links that point to a zettel having a specific tag.
+Overrides `neuron-title-overlay-face' which you may inherif from."
+  :group 'neuron
+  :type '(alist :key-type string :value-type face))
+
 (defgroup neuron-faces nil
   "Faces used in neuron-mode."
   :group 'neuron
@@ -138,14 +144,6 @@ of the zettel."
     (((class color) :foreground "grey" :underline "grey"))
     (t :inherit italic))
   "Face for title overlays displayed with folgezettel links."
-  :group 'neuron-faces)
-
-(defface neuron-cf-title-overlay-face
-  '((((class color) (min-colors 88) (background dark)) :foreground "MistyRose3" :underline "MistyRose3")
-    (((class color) (min-colors 88) (background light)) :foreground "ivory4" :underline "ivory4")
-    (((class color) :foreground "grey" :underline "grey"))
-    (t :inherit italic))
-  "Face for title overlays displayed with ordinary-connected links."
   :group 'neuron-faces)
 
 (defface neuron-invalid-link-face
@@ -955,19 +953,29 @@ and algebra/linear/theorem to math/theorem/algebra/linear."
      neuron--zettel-cache)
     (message "Replaced all tags")))
 
+(defun neuron--get-title-face-for-tags (tags)
+  "Return the face of the title overlay based on the zettel's list of tags TAGS.
+It picks the faces from the `neuron-tag-specific-title-faces' variable.
+When no tag has a particular face, return the default `neuron-title-overlay-face'."
+  (or (pcase-dolist (`(,tag . ,face) neuron-tag-specific-title-faces)
+        (when (seq-contains tags tag)
+          (return face)))
+      'neuron-title-overlay-face))
+
 (defun neuron--setup-overlay-from-id (ov id conn)
   "Setup a single title overlay from a zettel ID.
 OV is the overay to setup or update and CONN described whether the link is a
 folgezettel or an ordinary connection."
   (if-let* ((zettel (ignore-errors (neuron--get-cached-zettel-from-id id)))
-            (title (map-elt zettel 'title))
+            (title (alist-get 'title zettel))
+            (title-face (neuron--get-title-face-for-tags (alist-get 'tags zettel)))
             (title-suffix (if (eq conn 'folgezettel) " ᛦ" "")))
       (if neuron-show-ids
           (progn
             (overlay-put ov 'display nil)
             (overlay-put ov 'after-string (format " %s" (propertize title 'face title-face))))
         (overlay-put ov 'after-string nil)
-        (overlay-put ov 'display (format "%s%s" (propertize title 'face 'neuron-title-overlay-face) title-suffix)))
+        (overlay-put ov 'display (format "%s%s" (propertize title 'face title-face) title-suffix)))
     (overlay-put ov 'after-string (format " %s" (propertize "Unknown ID" 'face 'neuron-invalid-zettel-id-face)))
     (overlay-put ov 'face 'neuron-invalid-link-face)))
 
