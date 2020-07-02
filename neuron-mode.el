@@ -283,7 +283,7 @@ Extract only the result itself, so the query type is lost."
 (defun neuron--rebuild-cache ()
   "Rebuild the zettel cache with the current zettelkasten."
   (let ((zettels (neuron--query-url-command "z:zettels"))
-        (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'id)) zettel))))
+        (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'zettelID)) zettel))))
     (setq neuron--zettel-cache (mapcar assoc-id zettels))))
 
 (defun neuron-list-buffers ()
@@ -365,7 +365,8 @@ When TITLE is nil, prompt the user."
          (zid    (format-time-string neuron-daily-note-id-format today))
          (title  (format-time-string neuron-daily-note-title-format today))
          (new    (neuron-create-zettel-buffer title zid t))
-         (buffer (or new (find-file-noselect (alist-get 'path (neuron--query-zettel-from-id zid))))))
+         (path   (f-join "/" neuron--current-zettelkasten (alist-get 'zettelPath (neuron--query-zettel-from-id zid))))
+         (buffer (or new (find-file-noselect path))))
     (and
      (pop-to-buffer-same-window buffer)
      (with-current-buffer buffer
@@ -385,9 +386,9 @@ When TITLE is nil, prompt the user."
 
 (defun neuron--propertize-zettel (zettel)
   "Format ZETTEL as shown in the selection prompt."
-  (let ((id (alist-get 'id zettel))
-        (title (alist-get 'title zettel))
-        (tags (alist-get 'tags zettel)))
+  (let ((id (alist-get 'zettelID zettel))
+        (title (alist-get 'zettelTitle zettel))
+        (tags (alist-get 'zettelTags zettel)))
     (format "%s %s %s" (neuron--style-zettel-id id) title (neuron--style-tags tags))))
 
 (defun neuron--select-zettel-from-list (zettels &optional prompt require-match)
@@ -425,7 +426,7 @@ PROMPT is the prompt passed to `completing-read'."
 (defun neuron-edit-zettel (zettel)
   "Select and edit ZETTEL."
   (interactive (list (neuron-select-zettel "Edit zettel: ")))
-  (neuron--edit-zettel-from-path (alist-get 'path zettel)))
+  (neuron--edit-zettel-from-path (alist-get 'zettelPath zettel)))
 
 (defun neuron--get-uplinks-from-id (id)
   "Get the list of zettels that point to the zettel ID."
@@ -482,7 +483,7 @@ the inserted link will either be of the form <ID> or
   "Insert a markdown hypertext link to another zettel."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (neuron--insert-zettel-link-from-id (map-elt (neuron-select-zettel "Link zettel: ") 'id)))
+  (neuron--insert-zettel-link-from-id (map-elt (neuron-select-zettel "Link zettel: ") 'zettelID)))
 
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
@@ -521,7 +522,7 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
           (neuron--select-zettel-from-list
            (map-values neuron--zettel-cache)
            "Link zettel: "))
-         (id (and (listp selection) (alist-get 'id selection))))
+         (id (and (listp selection) (alist-get 'zettelID selection))))
     (pcase selection
       ;; Existing zettel:
       ((guard id)
@@ -670,9 +671,8 @@ When called interactively this command prompts for a tag."
 
 (defun neuron--edit-zettel-from-path (path)
   "Open a neuron zettel from PATH."
-  (let ((buffer (find-file-noselect path)))
-    (pop-to-buffer-same-window buffer)
-    (neuron-mode)))
+  (let ((buffer (find-file-noselect (f-join "/" neuron--current-zettelkasten path))))
+    (pop-to-buffer-same-window buffer)))
 
 (defun neuron--query-zettel-from-id (id)
   "Query a single zettel from the active zettelkasten from its ID.
@@ -694,11 +694,11 @@ the cache when the ID is not found."
   "Open a neuron zettel from ID."
   (let ((zettel (neuron--get-cached-zettel-from-id id)))
     (neuron--edit-zettel-from-path
-     (map-elt zettel 'path))))
+     (alist-get 'zettelPath zettel))))
 
 (defun neuron--edit-zettel-from-query (uri)
   "Select and edit a zettel from a neuron query URI."
-  (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query uri) 'path)))
+  (neuron--edit-zettel-from-path (alist-get 'zettelPath (neuron--select-zettel-from-query uri))))
 
 (defun neuron--get-zettel-id (&optional buffer)
   "Extract the zettel ID of BUFFER."
@@ -720,7 +720,7 @@ The path is relative to the neuron output directory."
   "Select a zettel and open the associated HTML file."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (neuron--open-zettel-from-id (map-elt (neuron-select-zettel "Open zettel: ") 'id)))
+  (neuron--open-zettel-from-id (map-elt (neuron-select-zettel "Open zettel: ") 'zettelID)))
 
 (defun neuron-open-index ()
   "Open the index.html file."
@@ -754,7 +754,7 @@ Group 1 is the matched ID or URL.")
 QUERY is a query object as described in `neuron--parse-query-from-url-or-id'."
   (let ((url (map-elt query 'url)))
     (pcase (map-elt query 'type)
-      ('zettel  (neuron--edit-zettel-from-id (map-elt query 'id)))
+      ('zettel  (neuron--edit-zettel-from-id (alist-get 'id query)))
       ('zettels (neuron--edit-zettel-from-query url))
       ('tags    (neuron-query-tags (neuron--select-tag-from-query url "Search by tag: "))))))
 
@@ -763,7 +763,7 @@ QUERY is a query object as described in `neuron--parse-query-from-url-or-id'."
 URL-OR-ID is a string that is meant to be parsed inside neuron links inside
 angle brackets. The query is returned as a map having at least a `'type' field.
 When URL-OR-ID is a raw ID, or that it is an URL having startin with z:zettel,
-the map also has an `'id' field. Whenever URL-OR-ID is an URL and not an ID,
+the map also has an `'zettelID' field. Whenever URL-OR-ID is an URL and not an ID,
 the map features an `'url' field."
   (let* ((struct (url-generic-parse-url url-or-id))
          (path-and-query (url-path-and-query struct))
@@ -796,7 +796,7 @@ QUERY is an alist containing at least the query type and the URL."
          (url-query (url-build-query-string url-args))
          (url-suffix (if url-args (format "?%s" url-query) "")))
     (pcase (alist-get 'type query)
-      ('zettel (format "<%s%s>" (alist-get 'id query) url-suffix))
+      ('zettel (format "<%s%s>" (alist-get 'zettelID query) url-suffix))
       ('zettels (format "<z:zettels%s>" url-suffix))
       ('tags (format "<z:tags%s>" url-suffix)))))
 
@@ -824,9 +824,9 @@ QUERY is an alist containing at least the query type and the URL."
         ((or "z" "zcf") (neuron--edit-zettel-from-id id))
         ((or "zquery" "zcfquery")
          (pcase (url-host struct)
-           ("search" (neuron--edit-zettel-from-path (map-elt (neuron--select-zettel-from-query url) 'path)))
+           ("search" (neuron--edit-zettel-from-path (alist-get 'zettelPath (neuron--select-zettel-from-query url))))
            ("tags"   (neuron-query-tags (neuron--select-tag-from-query url)))))
-        (_          (markdown-follow-thing-at-point link))))))
+        (_ (markdown-follow-thing-at-point link))))))
 
 (defun neuron-rib-watch ()
   "Start a web app for browsing the zettelkasten."
@@ -875,7 +875,7 @@ QUERY is an alist containing at least the query type and the URL."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
   (let ((zettel (neuron-select-zettel)))
-    (neuron-rib-open-page (concat (map-elt zettel 'id) ".html"))))
+    (neuron-rib-open-page (concat (map-elt zettel 'zettelID) ".html"))))
 
 (defun neuron-rib-kill ()
   "Stop the web application."
@@ -943,7 +943,7 @@ and algebra/linear/theorem to math/theorem/algebra/linear."
   (neuron--rebuild-cache)
   (let ((current-buffers (neuron-list-buffers)))
     (map-do
-     (lambda (_ zettel) (when-let* ((path (map-elt zettel 'path))
+     (lambda (_ zettel) (when-let* ((path (f-join "/" neuron--current-zettelkasten (alist-get 'zettelPath zettel)))
                                     (buffer (find-file-noselect path)))
                           (with-current-buffer buffer
                             (neuron--replace-tag-in-current-zettel pattern repl)
@@ -959,16 +959,16 @@ It picks the faces from the `neuron-tag-specific-title-faces' variable.
 When no tag has a particular face, return the default `neuron-title-overlay-face'."
   (or (pcase-dolist (`(,tag . ,face) neuron-tag-specific-title-faces)
         (when (seq-contains tags tag)
-          (return face)))
+          (return (car face))))
       'neuron-title-overlay-face))
 
 (defun neuron--setup-overlay-from-id (ov id conn)
   "Setup a single title overlay from a zettel ID.
-OV is the overay to setup or update and CONN described whether the link is a
+OV is the overay to setup or update and CONN describes whether the link is a
 folgezettel or an ordinary connection."
   (if-let* ((zettel (ignore-errors (neuron--get-cached-zettel-from-id id)))
-            (title (alist-get 'title zettel))
-            (title-face (neuron--get-title-face-for-tags (alist-get 'tags zettel)))
+            (title (alist-get 'zettelTitle zettel))
+            (title-face (neuron--get-title-face-for-tags (alist-get 'zettelTags zettel)))
             (title-suffix (if (eq conn 'folgezettel) " ᛦ" "")))
       (if neuron-show-ids
           (progn
@@ -997,8 +997,8 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (overlay-put ov 'face 'neuron-link-face)
   (overlay-put ov 'mouse-face 'neuron-link-mouse-face)
   (overlay-put ov 'keymap neuron-mode-link-map)
-  (when (equal (map-elt query 'type) 'zettel)
-    (neuron--setup-overlay-from-id ov (map-elt query 'id) (alist-get 'conn query))))
+  (when (equal (alist-get 'type query) 'zettel)
+    (neuron--setup-overlay-from-id ov (alist-get 'id query) (alist-get 'conn query))))
 
 (defun neuron--setup-overlays ()
   "Setup title overlays on zettel links."
@@ -1006,7 +1006,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward neuron-link-regex nil t)
-      (let ((ov    (make-overlay (match-beginning 0) (match-end 0) nil t nil))
+      (let ((ov (make-overlay (match-beginning 0) (match-end 0) nil t nil))
             (query (neuron--parse-query-from-url-or-id (match-string 1))))
         (neuron--setup-overlay-from-query ov query)))))
 
