@@ -365,7 +365,7 @@ When TITLE is nil, prompt the user."
          (zid    (format-time-string neuron-daily-note-id-format today))
          (title  (format-time-string neuron-daily-note-title-format today))
          (new    (neuron-create-zettel-buffer title zid t))
-         (path   (f-join "/" neuron--current-zettelkasten (alist-get 'zettelPath (neuron--query-zettel-from-id zid))))
+         (path   (neuron--get-zettel-path (neuron--query-zettel-from-id zid)))
          (buffer (or new (find-file-noselect path))))
     (and
      (pop-to-buffer-same-window buffer)
@@ -423,10 +423,14 @@ PROMPT is the prompt passed to `completing-read'."
   (neuron-check-if-zettelkasten-exists)
   (neuron--select-zettel-from-cache prompt))
 
+(defun neuron--get-zettel-path (zettel)
+  "Get the path of ZETTEL."
+  (f-join "/" neuron--current-zettelkasten (concat (alist-get 'zettelID zettel) ".md")))
+
 (defun neuron-edit-zettel (zettel)
   "Select and edit ZETTEL."
   (interactive (list (neuron-select-zettel "Edit zettel: ")))
-  (neuron--edit-zettel-from-path (alist-get 'zettelPath zettel)))
+  (neuron--edit-zettel-from-path (neuron--get-zettel-path zettel)))
 
 (defun neuron--get-uplinks-from-id (id)
   "Get the list of zettels that point to the zettel ID."
@@ -693,12 +697,11 @@ the cache when the ID is not found."
 (defun neuron--edit-zettel-from-id (id)
   "Open a neuron zettel from ID."
   (let ((zettel (neuron--get-cached-zettel-from-id id)))
-    (neuron--edit-zettel-from-path
-     (alist-get 'zettelPath zettel))))
+    (neuron-edit-zettel zettel)))
 
 (defun neuron--edit-zettel-from-query (uri)
   "Select and edit a zettel from a neuron query URI."
-  (neuron--edit-zettel-from-path (alist-get 'zettelPath (neuron--select-zettel-from-query uri))))
+  (neuron-edit-zettel (neuron--select-zettel-from-query uri)))
 
 (defun neuron--get-zettel-id (&optional buffer)
   "Extract the zettel ID of BUFFER."
@@ -824,7 +827,7 @@ QUERY is an alist containing at least the query type and the URL."
         ((or "z" "zcf") (neuron--edit-zettel-from-id id))
         ((or "zquery" "zcfquery")
          (pcase (url-host struct)
-           ("search" (neuron--edit-zettel-from-path (alist-get 'zettelPath (neuron--select-zettel-from-query url))))
+           ("search" (neuron-edit-zettel (neuron--select-zettel-from-query url)))
            ("tags"   (neuron-query-tags (neuron--select-tag-from-query url)))))
         (_ (markdown-follow-thing-at-point link))))))
 
@@ -943,7 +946,7 @@ and algebra/linear/theorem to math/theorem/algebra/linear."
   (neuron--rebuild-cache)
   (let ((current-buffers (neuron-list-buffers)))
     (map-do
-     (lambda (_ zettel) (when-let* ((path (f-join "/" neuron--current-zettelkasten (alist-get 'zettelPath zettel)))
+     (lambda (_ zettel) (when-let* ((path (neuron--get-zettel-path zettel))
                                     (buffer (find-file-noselect path)))
                           (with-current-buffer buffer
                             (neuron--replace-tag-in-current-zettel pattern repl)
