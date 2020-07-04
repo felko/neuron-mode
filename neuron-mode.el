@@ -802,7 +802,7 @@ QUERY is an alist containing at least the query type and the URL."
          (url-query (url-build-query-string url-args))
          (url-suffix (if url-args (format "?%s" url-query) "")))
     (pcase (alist-get 'type query)
-      ('zettel (format "<%s%s>" (alist-get 'zettelID query) url-suffix))
+      ('zettel (format "<%s%s>" (alist-get 'id query) url-suffix))
       ('zettels (format "<z:zettels%s>" url-suffix))
       ('tags (format "<z:tags%s>" url-suffix)))))
 
