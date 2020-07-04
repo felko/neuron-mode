@@ -434,7 +434,10 @@ PROMPT is the prompt passed to `completing-read'."
 
 (defun neuron--get-uplinks-from-id (id)
   "Get the list of zettels that point to the zettel ID."
-  (neuron--read-query-result (neuron--run-command (neuron--make-command "query" "--uplinks-of" id))))
+  (when-let* ((cmd (neuron--make-command "query" "--uplinks-of" id))
+              (output (neuron--run-command cmd))
+              (results (neuron--read-query-result output)))
+    (mapcar (lambda (result) (seq-elt result 1)) results)))
 
 (defun neuron-edit-uplink ()
   "Select and edit a zettel among the ones that link to the current zettel."
