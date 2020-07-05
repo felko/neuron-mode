@@ -116,6 +116,11 @@ Overrides `neuron-title-overlay-face' which you may inherif from."
   :group 'neuron
   :type '(alist :key-type string :value-type face))
 
+(defcustom neuron-max-trail-length 20
+  "Maximum length of the trail.
+The trail stores a list of zettel IDs which tracks
+the previously visited zettels.")
+
 (defgroup neuron-faces nil
   "Faces used in neuron-mode."
   :group 'neuron
@@ -176,6 +181,9 @@ selecting a zettel. Can be toggled using `neuron-toggle-id-visibility'.")
   "The currently active zettelkasten.
 Since it can be invalid sometimes, it should only be used in internal
 functions when we know that the zettelkasten was just updated.")
+
+(defvar-local neuron-trail nil
+  "List of previously visited zettels, in order.")
 
 (defun neuron--detect-zettelkasten (pwd)
   "Navigate upwards from PWD until a neuron.dhall file is found.
@@ -769,8 +777,8 @@ QUERY is a query object as described in `neuron--parse-query-from-url-or-id'."
 URL-OR-ID is a string that is meant to be parsed inside neuron links inside
 angle brackets. The query is returned as a map having at least a `'type' field.
 When URL-OR-ID is a raw ID, or that it is an URL having startin with z:zettel,
-the map also has an `'zettelID' field. Whenever URL-OR-ID is an URL and not an ID,
-the map features an `'url' field."
+the map also has an `'zettelID' field. Whenever URL-OR-ID is an URL and not an
+ID, the map features an `'url' field."
   (let* ((struct (url-generic-parse-url url-or-id))
          (path-and-query (url-path-and-query struct))
          (path   (car path-and-query))
