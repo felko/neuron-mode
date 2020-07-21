@@ -433,7 +433,7 @@ PROMPT is the prompt passed to `completing-read'."
 
 (defun neuron--get-zettel-path (zettel)
   "Get the path of ZETTEL."
-  (f-join "/" neuron--current-zettelkasten (concat (alist-get 'zettelID zettel) ".md")))
+  (f-join "/" neuron--current-zettelkasten (alist-get 'zettelPath zettel)))
 
 (defun neuron-edit-zettel (zettel)
   "Select and edit ZETTEL."
