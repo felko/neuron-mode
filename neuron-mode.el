@@ -116,6 +116,11 @@ Overrides `neuron-title-overlay-face' which you may inherif from."
   :group 'neuron
   :type '(alist :key-type string :value-type face))
 
+(defcustom neuron-rib-port 8080
+  "The port on which the rib server is started."
+  :group 'neuron
+  :type  'integerp)
+
 (defcustom neuron-max-trail-length 20
   "Maximum length of the trail.
 The trail stores a list of zettel IDs which tracks
@@ -854,9 +859,10 @@ QUERY is an alist containing at least the query type and the URL."
   "Start a web app for browsing the zettelkasten."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (if (neuron--run-rib-process "-wS")
-      (message "Started web application on localhost:8080")
-    (user-error "Failed to run rib server on localhost:8080")))
+  (let ((address (format "localhost:%d" neuron-rib-port)))
+  (if (neuron--run-rib-process "-ws" address)
+      (message "Started web application on %s" address)
+    (user-error "Failed to run rib server on %s" address))))
 
 (defun neuron-rib-generate ()
   "Do an one-off generation of the web interface of the zettelkasten."
@@ -869,7 +875,7 @@ QUERY is an alist containing at least the query type and the URL."
 (defun neuron-rib-open-page (page)
   "Open the web-application at page PAGE."
   (neuron-check-if-zettelkasten-exists)
-  (browse-url (format "http://localhost:8080/%s" page)))
+  (browse-url (format "http://localhost:%d/%s" neuron-rib-port page)))
 
 (defun neuron-rib-open-z-index ()
   "Open the web application in the web browser at z-index."

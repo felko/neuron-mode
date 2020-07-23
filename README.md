@@ -2,67 +2,67 @@
 
 # neuron-mode
 
-neuron-mode is an Emacs major mode derived from [markdown-mode](https://jblevins.org/projects/markdown-mode/)
-to edit notes using the [neuron](https://neuron.zettel.page/) Zettelkasten
-manager.
+neuron-mode is an Emacs major mode derived from
+[markdown-mode](https://jblevins.org/projects/markdown-mode/) to edit notes
+using the [neuron](https://neuron.zettel.page/) Zettelkasten manager.
 
 <p align="center"><a href="https://asciinema.org/a/329911"><img src="https://asciinema.org/a/329911.svg" alt="drawing" width="600"/></a></br>neuron-mode demo in <a href="https://github.com/hlissner/doom-emacs">doom emacs</a></p>
 
 ## Installation
 
-1. Install [neuron](https://neuron.zettel.page/2011501.html) and
-   make sure that the `neuron` command is in your path.
+1. Install [neuron](https://neuron.zettel.page/2011501.html) and make sure that
+   the `neuron` command is in your path.
 
-2. Install neuron-mode, either via MELPA (recommended) or
-   manually by cloning this repository.
+2. Install neuron-mode, either via MELPA (recommended) or manually by cloning
+   this repository.
 
-In addition, doom-emacs users can use [this configuration](#appendix-doom-emacs-configuration)
-to include neuron-mode into their private config.
+In addition, doom-emacs users can use
+[this configuration](#appendix-doom-emacs-configuration) to include neuron-mode
+into their private config.
 
 ## Features
 
-All commands are executed in the active zettelkasten which is either detected
-by traversing the directory hierarchy upwards until a `neuron.dhall` file
-is met (see [neuron configuration](https://neuron.zettel.page/2011701.html)).
+All commands are executed in the active zettelkasten which is either detected by
+traversing the directory hierarchy upwards until a `neuron.dhall` file is met
+(see [neuron configuration](https://neuron.zettel.page/2011701.html)).
 Otherwise, neuron-mode will take the default zettelkasten, defined by the
 `neuron-default-zettelkasten-directory`. neuron-mode will then cache the zettels
 and regenerate it when needed (typically when creating a new zettel). Sometimes,
 when the zettelkasten is modified externally to neuron-mode, you might need to
 invalidate the cache and rebuild it manually, which is done with the
-`neuron-refresh` command. This will also reload the titles displayed
-next to zettel links (see next paragraph).
+`neuron-refresh` command. This will also reload the titles displayed next to
+zettel links (see next paragraph).
 
 #### Reading
 
-neuron-mode allows you to browse your zettelkasten directly from Emacs.
-Most importantly, neuron links are shown together with their titles so that
-you don't need to read the zettel from the associated HTML file anymore.
+neuron-mode allows you to browse your zettelkasten directly from Emacs. Most
+importantly, neuron links are shown together with their titles so that you don't
+need to read the zettel from the associated HTML file anymore.
 
 #### Navigating
 
-neuron links can also be followed using `neuron-follow-thing-at-point`.
-For queries, it will prompt you to select a zettel that match the query
-under the point.
+neuron links can also be followed using `neuron-follow-thing-at-point`. For
+queries, it will prompt you to select a zettel that match the query under the
+point.
 
-Navigating "upwards" is also possible, using the `neuron-edit-uplink`
-function.
+Navigating "upwards" is also possible, using the `neuron-edit-uplink` function.
 
 #### Searching
 
-The `neuron-edit-zettel` will prompt you with the list of zettels, where
-you can search by title, by tag or by ID using ivy.
+The `neuron-edit-zettel` will prompt you with the list of zettels, where you can
+search by title, by tag or by ID using ivy.
 
-projectile can also be useful as a complement to neuron-mode since it allows
-you to search the zettelkasten by content.
+projectile can also be useful as a complement to neuron-mode since it allows you
+to search the zettelkasten by content.
 
 #### Editing
 
 You can create new zettels from Emacs, neuron-mode will take care of creating
 the file with a generated hash in the current active zettelkasten.
 
-Zettel links can be inserted using `neuron-insert-zettel-link` which will
-prompt you to select an existing zettel in the active zettelkasten. Zettels can
-also be linked and created on the fly by using `neuron-insert-new-zettel`.
+Zettel links can be inserted using `neuron-insert-zettel-link` which will prompt
+you to select an existing zettel in the active zettelkasten. Zettels can also be
+linked and created on the fly by using `neuron-insert-new-zettel`.
 
 To avoid typos in tags which might mess up the organization of your
 zettelkasten, use `neuron-add-tag`/`neuron-add-tags` which will allow you to
@@ -80,9 +80,9 @@ the zettel being edited, or globally with `neuron-open-zettel`.
 
 Alternatively, you can use the rib server to read your zettelkasten from your
 browser. The server can be started using `neuron-rib-serve` and stopped using
-`neuron-rib-kill`. Similar functions are provided to open the zettels in
-the web app rather than local files (respectively
-`neuron-rib-open-current-zettel` and `neuron-rib-open-zettel`).
+`neuron-rib-kill`. Similar functions are provided to open the zettels in the web
+app rather than local files (respectively `neuron-rib-open-current-zettel` and
+`neuron-rib-open-zettel`).
 
 ### Function list
 
@@ -122,12 +122,11 @@ the web app rather than local files (respectively
   a zettelkasten.
 - `neuron-executable` (default: `neuron`) \
   Path or wrapper around the neuron executable. \
-  Example: this can be useful when using Emacs from Windows,
-  while having neuron installed on WSL, in which case you can
-  set `neuron-executable` to `wsl neuron`.
+  Example: this can be useful when using Emacs from Windows, while having neuron
+  installed on WSL, in which case you can set `neuron-executable` to
+  `wsl neuron`.
 - `neuron-generate-on-save` (default: `nil`) \
-  Generates the site when saving a note. Opens a compilation buffer
-  (`neuron-rib-generate`)
+  Generates the site when saving a note. Opens a compilation buffer (`neuron-rib-generate`)
 - `neuron-id-format` (default: `'hash`) \
   Controls the default ID format used when creating new notes. \
   It can be set to:
@@ -135,28 +134,30 @@ the web app rather than local files (respectively
   - `'date`: generates an ID based on the date of creation
   - `'prompt`: asks for the ID when creating a new zettel
 - `neuron-default-tags` (default: `nil`) \
-  A list of tags to add to zettels when they are created.
-  This does not affect daily notes. \
-  Example: `stub` (to mimic [Wikipedia's stubs](https://en.wikipedia.org/wiki/Wikipedia:Stub))
+  A list of tags to add to zettels when they are created. This does not affect daily
+  notes. \
+  Example: `stub` (to mimic
+  [Wikipedia's stubs](https://en.wikipedia.org/wiki/Wikipedia:Stub))
 - `neuron-tag-specific-title-faces` (default: `nil`) \
   An alist that associates tags to faces, which will appear in the title overlay
-  when a link points to a zettel that has the corresponding tag.
-  Example: `'(("stub" hl-todo))`
+  when a link points to a zettel that has the corresponding tag. Example: `'(("stub" hl-todo))`
 - `neuron-daily-note-id-format` (default: `"%Y-%m-%d"`) \
   Format that controls the filenames of newly created daily notes
 - `neuron-daily-note-title-format` (default: `"%x"`) \
   The format of titles for new daily notes
 - `neuron-daily-note-tags` (default: `(list "journal/daily")`) \
   The default tag of daily notes.
+- `neuron-rib-port` (default: `8080`) \
+  The port on which the rib instance serves.
 
 ### Other variables
 
 - `neuron-make-title` (default: capitalizes the first word) \
-  A function that is called by `neuron-create-zettel-from-selection` to
-  transform the text into the actual title of the new zettel.
+  A function that is called by `neuron-create-zettel-from-selection` to transform
+  the text into the actual title of the new zettel.
 - `neuron-show-ids` (default: `nil`) \
-  Whether to show the IDs next to zettel titles, rather than having the titles
-  completely hide them. Can be toggled using `neuron-toggle-id-visibility`.
+  Whether to show the IDs next to zettel titles, rather than having the titles completely
+  hide them. Can be toggled using `neuron-toggle-id-visibility`.
 
 ## Appendix: doom-emacs configuration
 
@@ -166,6 +167,5 @@ doom-emacs users can use this configuration to work with `neuron-mode`:
 
 (include those files in `.doom.d/modules/tools/neuron`)
 
-This creates a private module that can then be enabled by
-inserting `neuron` under the `:tools` section of your `doom!`
-block (inside your `init.el`).
+This creates a private module that can then be enabled by inserting `neuron`
+under the `:tools` section of your `doom!` block (inside your `init.el`).
