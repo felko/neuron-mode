@@ -116,6 +116,11 @@ Overrides `neuron-title-overlay-face' which you may inherif from."
   :group 'neuron
   :type '(alist :key-type string :value-type face))
 
+(defcustom neuron-rib-host "localhost"
+  "The host on which the rib server is started."
+  :group 'neuron
+  :type  'stringp)
+
 (defcustom neuron-rib-port 8080
   "The port on which the rib server is started."
   :group 'neuron
@@ -859,7 +864,7 @@ QUERY is an alist containing at least the query type and the URL."
   "Start a web app for browsing the zettelkasten."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (let ((address (format "localhost:%d" neuron-rib-port)))
+  (let ((address (format "%s:%d" neuron-rib-host neuron-rib-port)))
   (if (neuron--run-rib-process "-ws" address)
       (message "Started web application on %s" address)
     (user-error "Failed to run rib server on %s" address))))
@@ -875,7 +880,7 @@ QUERY is an alist containing at least the query type and the URL."
 (defun neuron-rib-open-page (page)
   "Open the web-application at page PAGE."
   (neuron-check-if-zettelkasten-exists)
-  (browse-url (format "http://localhost:%d/%s" neuron-rib-port page)))
+  (browse-url (format "http://%s:%d/%s" neuron-rib-host neuron-rib-port page)))
 
 (defun neuron-rib-open-z-index ()
   "Open the web application in the web browser at z-index."

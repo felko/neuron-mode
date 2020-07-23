@@ -147,8 +147,9 @@ app rather than local files (respectively `neuron-rib-open-current-zettel` and
   The format of titles for new daily notes
 - `neuron-daily-note-tags` (default: `(list "journal/daily")`) \
   The default tag of daily notes.
-- `neuron-rib-port` (default: `8080`) \
-  The port on which the rib instance serves.
+- `neuron-rib-server-host` (default: `localhost`) \
+- `neuron-rib-server-port` (default: `8080`) \
+  The host and port on which the rib server will run
 
 ### Other variables
 
