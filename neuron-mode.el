@@ -320,10 +320,13 @@ Extract only the result itself, so the query type is lost."
   "Regenerate the zettel cache and the title overlays in all neuron-mode buffers."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (neuron--rebuild-cache)
-  (dolist (buffer (neuron-list-buffers))
-    (with-current-buffer buffer (neuron--setup-overlays)))
-  (message "Regenerated zettel cache"))
+  (make-thread (lambda ()
+                 (progn
+                   (dolist (buffer (neuron-list-buffers))
+                     (with-current-buffer buffer (neuron--setup-overlays)))
+                   (neuron--rebuild-cache)
+                   (message "Regenerated zettel cache")))
+               "neuron-refresh"))
 
 (defun neuron--is-valid-id (id)
   "Check whether the ID is a valid neuron zettel ID.
@@ -867,9 +870,9 @@ QUERY is an alist containing at least the query type and the URL."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
   (let ((address (format "%s:%d" neuron-rib-server-host neuron-rib-server-port)))
-  (if (neuron--run-rib-process "-ws" address)
-      (message "Started web application on %s" address)
-    (user-error "Failed to run rib server on %s" address))))
+    (if (neuron--run-rib-process "-ws" address)
+        (message "Started web application on %s" address)
+      (user-error "Failed to run rib server on %s" address))))
 
 (defun neuron-rib-generate ()
   "Do an one-off generation of the web interface of the zettelkasten."
