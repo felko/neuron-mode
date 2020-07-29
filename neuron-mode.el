@@ -80,9 +80,13 @@ from WSL."
 'hash will make neuron generate a hexadecimal 8-digit UUID.
 'date will generate an ID that is baed on the current date,
     as well as an integer to distinguish zettels that were created the same day,
-'prompt will ask for the user to specify the ID every time a zettel is created."
+'prompt will ask for the user to specify the ID every time a zettel is created.
+This can be also set to a callable that takes the title as an argument
+and returns the desired ID."
   :group 'neuron
-  :type  'symbol)
+  :type  '(choice
+           (symbol   :tag "Let neuron handle the ID creation using CLI arguments")
+           (function :tag "Function taking the title as argument and returning an ID")))
 
 (defcustom neuron-daily-note-id-format "%Y-%m-%d"
   "Format of daily note IDs.
@@ -333,13 +337,15 @@ Extract only the result itself, so the query type is lost."
 Valid IDs should be strings of alphanumeric characters."
   (string-match (rx bol (+ (or (char (?A . ?Z)) (char (?a . ?z)) digit (char "_-"))) eol) id))
 
-(defun neuron--generate-id-arguments (id)
+(defun neuron--generate-id-arguments (id title)
   "Build the command line arguments that specifies the ID of a new zettel.
 When ID is non-nil, use that ID, otherwise use the default strategy defined
 by `neuron-id-format'. If it is `'prompt' and that the entered ID is invalid,
 return nil."
-  (if (and id (neuron--is-valid-id id))
-      (list "--id" id)
+  (if id
+      (if (neuron--is-valid-id id)
+          (list "--id" id)
+        (user-error "Invalid zettel ID: %S" id))
     (pcase neuron-id-format
       ('hash '("--id-hash"))
       ('date '("--id-date"))
@@ -347,7 +353,12 @@ return nil."
        (if-let* ((id (read-string "ID: "))
                  ((neuron--is-valid-id id)))
            (list "--id" id)
-         (user-error "Invalid ID: %S" id))))))
+         (user-error "Invalid zettel ID: %S" id)))
+      ((pred functionp)
+       (let ((id (funcall neuron-id-format title)))
+         (if (neuron--is-valid-id id)
+             (list "--id" id)
+           (user-error "Invalid zettel ID: %S" id)))))))
 
 (defun neuron-create-zettel-buffer (title &optional id no-default-tags)
   "Create a new zettel in the current zettelkasten.
@@ -358,7 +369,7 @@ If NO-DEFAULT-TAGS is non-nil, don't add the tags specified the variable
   (interactive (list (read-string "Title: ")))
   (neuron-check-if-zettelkasten-exists)
   (when (or (not id) (and id (not (neuron--get-cached-zettel-from-id id))))
-    (let* ((id-args (neuron--generate-id-arguments id))
+    (let* ((id-args (neuron--generate-id-arguments id title))
            (args    (append id-args (list title)))
            (path    (neuron--run-command (apply #'neuron--make-command "new" args)))
            (buffer  (find-file-noselect path)))

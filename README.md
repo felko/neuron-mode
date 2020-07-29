@@ -135,6 +135,10 @@ app rather than local files (respectively `neuron-rib-open-current-zettel` and
   - `'hash`: generates an unique 32 bit UUID (default behavior of neuron)
   - `'date`: generates an ID based on the date of creation
   - `'prompt`: asks for the ID when creating a new zettel
+  - a function: generate a custom ID based on the zettel title. (not recommended
+    for actual knowledge based zettelkastens but might be useful for e.g.
+    slugging the titles for documentations) The function has to generate a valid
+    neuron ID.
 - `neuron-default-tags` (default: `nil`) \
   A list of tags to add to zettels when they are created. This does not affect daily
   notes. \
