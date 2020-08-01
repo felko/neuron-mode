@@ -326,9 +326,9 @@ Extract only the result itself, so the query type is lost."
   (neuron-check-if-zettelkasten-exists)
   (make-thread (lambda ()
                  (progn
+                   (neuron--rebuild-cache)
                    (dolist (buffer (neuron-list-buffers))
                      (with-current-buffer buffer (neuron--setup-overlays)))
-                   (neuron--rebuild-cache)
                    (message "Regenerated zettel cache")))
                "neuron-refresh"))
 
