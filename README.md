@@ -24,15 +24,15 @@ into their private config.
 
 All commands are executed in the active zettelkasten which is either detected by
 traversing the directory hierarchy upwards until a `neuron.dhall` file is met
-(see [neuron configuration](https://neuron.zettel.page/2011701.html)). Although
-`neuron.dhall` files are not mandatory to use neuron itself, this is what
-enables neuron-mode automatically when opening a markdown file. Otherwise,
-neuron-mode will take the default zettelkasten, defined by the
-`neuron-default-zettelkasten-directory`. neuron-mode will then cache the zettels
-and regenerate it when needed (typically when creating a new zettel). Sometimes,
-when the zettelkasten is modified externally to neuron-mode, you might need to
-invalidate the cache and rebuild it manually, which is done with the
-`neuron-refresh` command. This will also reload the titles displayed next to
+(see [neuron configuration](https://neuron.zettel.page/2011701.html)), or
+otherwise it uses the zettelkasten that is specified by
+`neuron-default-zettelkasten-directory` (a path). Although `neuron.dhall` files
+are not mandatory to use neuron itself, this is what enables neuron-mode
+automatically when opening a markdown file. neuron-mode will then cache the
+zettels and regenerate it when needed (typically when creating a new zettel).
+Sometimes, when the zettelkasten is modified externally to neuron-mode, you
+might need to invalidate the cache and rebuild it manually, which is done with
+the `neuron-refresh` command. This will also reload the titles displayed next to
 zettel links (see next paragraph).
 
 #### Reading
