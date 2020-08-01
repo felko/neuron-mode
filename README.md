@@ -88,32 +88,32 @@ app rather than local files (respectively `neuron-rib-open-current-zettel` and
 
 ### Function list
 
-| Command                                  | Default binding | Description                                                               |
-| :--------------------------------------- | :-------------- | :------------------------------------------------------------------------ |
-| `neuron-new-zettel`                      | `C-c C-z`       | Create a new zettel and open it for edition                               |
-| `neuron-edit-zettel`                     | `C-c C-e`       | Select an existing zettel and open it for editing                         |
-| `neuron-edit-uplink`                     | N/A             | Select and edit a zettel that links to the current one                    |
-| `neuron-add-tag`                         | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block       |
-| `neuron-add-tags`                        | `C-c C-S-t`     | Same as `neuron-add-tag` but adds multiple tags simultaneously            |
-| `neuron-query-tag`                       | N/A             | Select a tag and then a zettel with that tag                              |
-| `neuron-replace-tag`                     | N/A             | Replace a tag by another across the entire zettelkasten                   |
-| `neuron-open-current-zettel`             | `C-c C-r`       | Open the current zettel's generated HTML file in the browser              |
-| `neuron-insert-zettel-link`              | `C-c C-l`       | Search a zettel by content and insert the link at point                   |
-| `neuron-insert-new-zettel`               | `C-c C-S-l`     | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`               |
-| `neuron-create-and-insert-zettel-link`   | N/A             | Like `neuron-insert-zettel-link` but can also create new zettels          |
-| `neuron-create-zettel-from-selection`    | N/A             | Transform the selected text into a new zettel                             |
-| `neuron-insert-static-link`              | `C-c C-s`       | Insert a link to a selected file in the static directory                  |
-| `neuron-toggle-connection-type`          | N/A             | Toggle the connection type under point, between cf and folgezettel        |
-| `neuron-open-daily-notes`                | N/A             | Open today's notes if it exists, or create it otherwise                   |
-| `neuron-refresh`                         | `C-c C-S-r`     | Regenerate the zettel cache and title overlays in all neuron-mode buffers |
-| `neuron-toggle-id-visibility`            | N/A             | Toggle between showing the titles next to the IDs or over them            |
-| `neuron-follow-thing-at-point`           | `C-c C-o`       | Override `markdown-follow-thing-at-point` to handle zettel URI protocol   |
-| `neuron-edit-zettelkasten-configuration` | N/A             | Open the neuron.dhall file at the root of the current zettelkasten        |
-| `neuron-rib-generate`                    | N/A             | Perform a one-off generation of the site                                  |
-| `neuron-rib-serve`                       | N/A             | Start the wep application on `localhost:8080`                             |
-| `neuron-rib-open-z-index`                | N/A             | Open the web application at `localhost:8080/z-index.html`                 |
-| `neuron-rib-open-zettel`                 | N/A             | Select and open a zettel note in the web appliation                       |
-| `neuron-rib-kill`                        | N/A             | Kill the web application process                                          |
+| Command                                    | Default binding | Description                                                               |
+| :----------------------------------------- | :-------------- | :------------------------------------------------------------------------ |
+| `neuron-new-zettel`                        | `C-c C-z`       | Create a new zettel and open it for edition                               |
+| `neuron-edit-zettel`                       | `C-c C-e`       | Select an existing zettel and open it for editing                         |
+| `neuron-edit-uplink`                       | N/A             | Select and edit a zettel that links to the current one                    |
+| `neuron-add-tag`                           | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block       |
+| `neuron-add-tags`                          | `C-c C-S-t`     | Same as `neuron-add-tag` but adds multiple tags simultaneously            |
+| `neuron-query-tag`                         | N/A             | Select a tag and then a zettel with that tag                              |
+| `neuron-replace-tag`                       | N/A             | Replace a tag by another across the entire zettelkasten                   |
+| `neuron-open-current-zettel`               | `C-c C-r`       | Open the current zettel's generated HTML file in the browser              |
+| `neuron-insert-zettel-link`                | `C-c C-l`       | Search a zettel by content and insert the link at point                   |
+| `neuron-insert-new-zettel`                 | `C-c C-S-l`     | Combine `neuron-new-zettel` and `neuron-insert-zettel-link`               |
+| `neuron-create-and-insert-zettel-link`     | N/A             | Like `neuron-insert-zettel-link` but can also create new zettels          |
+| `neuron-create-zettel-from-selected-title` | N/A             | Transform the selected text into a new zettel                             |
+| `neuron-insert-static-link`                | `C-c C-s`       | Insert a link to a selected file in the static directory                  |
+| `neuron-toggle-connection-type`            | N/A             | Toggle the connection type under point, between cf and folgezettel        |
+| `neuron-open-daily-notes`                  | N/A             | Open today's notes if it exists, or create it otherwise                   |
+| `neuron-refresh`                           | `C-c C-S-r`     | Regenerate the zettel cache and title overlays in all neuron-mode buffers |
+| `neuron-toggle-id-visibility`              | N/A             | Toggle between showing the titles next to the IDs or over them            |
+| `neuron-follow-thing-at-point`             | `C-c C-o`       | Override `markdown-follow-thing-at-point` to handle zettel URI protocol   |
+| `neuron-edit-zettelkasten-configuration`   | N/A             | Open the neuron.dhall file at the root of the current zettelkasten        |
+| `neuron-rib-generate`                      | N/A             | Perform a one-off generation of the site                                  |
+| `neuron-rib-serve`                         | N/A             | Start the wep application on `localhost:8080`                             |
+| `neuron-rib-open-z-index`                  | N/A             | Open the web application at `localhost:8080/z-index.html`                 |
+| `neuron-rib-open-zettel`                   | N/A             | Select and open a zettel note in the web appliation                       |
+| `neuron-rib-kill`                          | N/A             | Kill the web application process                                          |
 
 ## Configuration
 
