@@ -533,8 +533,9 @@ the inserted link will either be of the form <ID> or
   (when-let* ((buffer (call-interactively #'neuron-create-zettel-buffer))
               (id (neuron--get-zettel-id buffer)))
     (progn
-      (neuron--rebuild-cache)
       (neuron--insert-zettel-link-from-id id)
+      (save-buffer)
+      (neuron--rebuild-cache)
       (pop-to-buffer-same-window buffer)
       (message "Created %s" (buffer-name buffer)))))
 
