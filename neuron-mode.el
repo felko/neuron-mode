@@ -734,8 +734,9 @@ the cache when the ID is not found."
 
 (defun neuron--edit-zettel-from-id (id)
   "Open a neuron zettel from ID."
-  (let ((zettel (neuron--get-cached-zettel-from-id id)))
-    (neuron-edit-zettel zettel)))
+  (if-let ((zettel (neuron--get-cached-zettel-from-id id)))
+      (neuron-edit-zettel zettel)
+    (user-error "Zettel %s does not exist" id)))
 
 (defun neuron--edit-zettel-from-query (uri)
   "Select and edit a zettel from a neuron query URI."
