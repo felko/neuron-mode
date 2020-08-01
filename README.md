@@ -16,9 +16,9 @@ using the [neuron](https://neuron.zettel.page/) Zettelkasten manager.
 2. Install neuron-mode, either via MELPA (recommended) or manually by cloning
    this repository.
 
-In addition, doom-emacs users can use
-[this configuration](#appendix-doom-emacs-configuration) to include neuron-mode
-into their private config.
+If you are using an emacs distribution like doom emacs or spacemacs, refer to
+[this paragraph](#appendix-integration-to-emacs-distributions) to see how
+neuron-mode can be integrated into your configuration.
 
 ## Features
 
@@ -166,7 +166,9 @@ app rather than local files (respectively `neuron-rib-open-current-zettel` and
   Whether to show the IDs next to zettel titles, rather than having the titles completely
   hide them. Can be toggled using `neuron-toggle-id-visibility`.
 
-## Appendix: doom-emacs configuration
+## Appendix: integration to Emacs distributions
+
+### doom-emacs configuration
 
 doom-emacs users can use this configuration to work with `neuron-mode`:
 
@@ -176,3 +178,10 @@ doom-emacs users can use this configuration to work with `neuron-mode`:
 
 This creates a private module that can then be enabled by inserting `neuron`
 under the `:tools` section of your `doom!` block (inside your `init.el`).
+
+### Spacemacs integration
+
+A spacemacs layer for neuron-mode along with installation instructions can be
+found in the
+[LightAndLight/spacemacs-neuron](https://github.com/LightAndLight/spacemacs-neuron)
+repository.
