@@ -243,6 +243,7 @@ Refresh the zettel cache if the value has changed."
       (neuron--rebuild-cache))
     neuron--current-zettelkasten))
 
+;;;###autoload
 (defun neuron-zettelkasten (&optional pwd)
   "The location of the current Zettelkasten directory.
 First, it tries to detect automatically the current zettelkasten assuming
@@ -329,6 +330,7 @@ Extract only the result itself, so the query type is lost."
                     (f-parent-of? root buffer-file-name))))))
     (seq-filter pred (buffer-list))))
 
+;;;###autoload
 (defun neuron-refresh ()
   "Regenerate the zettel cache and the title overlays in all neuron-mode buffers."
   (interactive)
@@ -391,6 +393,7 @@ If NO-DEFAULT-TAGS is non-nil, don't add the tags specified the variable
       (message "Created %s" (f-filename path))
       buffer)))
 
+;;;###autoload
 (defun neuron-new-zettel (&optional title id)
   "Create a new zettel and open it in a new buffer.
 The new zettel will be generated with the given TITLE and ID if specified.
@@ -470,6 +473,7 @@ PROMPT is the prompt passed to `completing-read'."
   "Get the absolute path of ZETTEL."
   (f-join "/" neuron--current-zettelkasten (alist-get 'zettelPath zettel)))
 
+;;;###autoload
 (defun neuron-edit-zettel (zettel)
   "Select and edit ZETTEL."
   (interactive (list (neuron-select-zettel "Edit zettel: ")))
@@ -490,6 +494,7 @@ PROMPT is the prompt passed to `completing-read'."
          (uplinks (neuron--get-uplinks-from-id id)))
     (neuron-edit-zettel (neuron--select-zettel-from-list uplinks "Edit uplink: " t))))
 
+;;;###autoload
 (defun neuron-edit-zettelkasten-configuration ()
   "Open the neuron.dhall configuration file at the root of the zettelkasten."
   (interactive)
@@ -714,6 +719,7 @@ When called interactively this command prompts for a tag."
   (interactive (list (neuron-select-tag)))
   (neuron-add-tags (list tag)))
 
+;;;###autoload
 (defun neuron-query-tags (&rest tags)
   "Select and edit a zettel from those that are tagged by TAGS."
   (interactive (list (neuron-select-tag "Search by tag: " t)))
@@ -767,6 +773,7 @@ The path is relative to the neuron output directory."
   "Open the generated HTML file from the zettel ID."
   (neuron--open-page (format "%s.html" id)))
 
+;;;###autoload
 (defun neuron-open-zettel ()
   "Select a zettel and open the associated HTML file."
   (interactive)
@@ -851,6 +858,7 @@ QUERY is an alist containing at least the query type and the URL."
       ('zettels (format "<z:zettels%s>" url-suffix))
       ('tags (format "<z:tags%s>" url-suffix)))))
 
+;;;###autoload
 (defun neuron-follow-thing-at-point ()
   "Open the zettel link at point."
   (interactive)
@@ -879,6 +887,7 @@ QUERY is an alist containing at least the query type and the URL."
            ("tags"   (neuron-query-tags (neuron--select-tag-from-query url)))))
         (_ (markdown-follow-thing-at-point link))))))
 
+;;;###autoload
 (defun neuron-rib-watch ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
@@ -887,6 +896,7 @@ QUERY is an alist containing at least the query type and the URL."
         (message "Watching %s for changes..." root)
       (user-error "Failed to watch %s" root))))
 
+;;;###autoload
 (defun neuron-rib-serve ()
   "Start a web app for browsing the zettelkasten."
   (interactive)
@@ -896,6 +906,7 @@ QUERY is an alist containing at least the query type and the URL."
         (message "Started web application on %s" address)
       (user-error "Failed to run rib server on %s" address))))
 
+;;;###autoload
 (defun neuron-rib-generate ()
   "Do an one-off generation of the web interface of the zettelkasten."
   (interactive)
@@ -904,11 +915,13 @@ QUERY is an alist containing at least the query type and the URL."
         (message "Generated HTML files")
       (user-error "Failed to generate %s" root))))
 
+;;;###autoload
 (defun neuron-rib-open-page (page)
   "Open the web-application at page PAGE."
   (neuron-check-if-zettelkasten-exists)
   (browse-url (format "http://%s:%d/%s" neuron-rib-server-host neuron-rib-server-port page)))
 
+;;;###autoload
 (defun neuron-rib-open-z-index ()
   "Open the web application in the web browser at z-index."
   (interactive)
@@ -922,6 +935,7 @@ QUERY is an alist containing at least the query type and the URL."
   (let ((id (f-base (buffer-file-name))))
     (neuron-rib-open-page (concat id ".html"))))
 
+;;;###autoload
 (defun neuron-rib-open-zettel ()
   "Open a zettel in the web application."
   (interactive)
@@ -979,6 +993,7 @@ glob."
       (while (re-search-backward tag-regex nil t)
         (replace-match repl 'fixed-case)))))
 
+;;;###autoload
 (defun neuron-replace-tag (pattern repl)
   "Map all tags matching PATTERN to a REPL.
 PATTERN is a tag glob as used in neuron queries.
@@ -1063,6 +1078,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
             (query (neuron--parse-query-from-url-or-id (match-string 1))))
         (neuron--setup-overlay-from-query ov query)))))
 
+;;;###autoload
 (defun neuron-toggle-id-visiblity ()
   "Toggle the visibility of IDs in simple links.
 This can be useful to debug when searching for ID, explicitly seeing whether the
