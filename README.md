@@ -69,7 +69,8 @@ insert links, assuming that you use company, is by typing `<a few keywords` and
 then running `company-neuron`. This will show all the zettels whose titles match
 those keywords. You can enable `company-neuron` automatically by calling
 `company-neuron-setup` which will trigger the autocompletion when you start
-typing a link.
+typing a link. You can enable this globally by adding a hook to neuron-mode:
+(e.g. `(add-hook 'neuron-mode-hook #'company-neuron-setup)`).
 
 To avoid typos in tags which might mess up the organization of your
 zettelkasten, use `neuron-add-tag`/`neuron-add-tags` which will allow you to
