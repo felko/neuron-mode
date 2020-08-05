@@ -1145,6 +1145,11 @@ IGNORED is the rest of the arguments, not sure why it's there."
     ((no-cache) 't)
     ((ignore-case) t)))
 
+;;;###autoload
+(defun company-neuron-setup ()
+  "Setup company to use the neuron backend."
+  (add-to-list 'company-backends 'company-neuron))
+
 ;; Mode declaration
 
 (defvar neuron-mode-map nil "Keymap for `neuron-mode'.")
@@ -1188,8 +1193,6 @@ IGNORED is the rest of the arguments, not sure why it's there."
     (neuron-mode)))
 
 (add-hook 'markdown-mode-hook #'neuron--auto-enable-when-in-zettelkasten t nil)
-
-(set-company-backend! 'neuron-mode 'company-neuron)
 
 (provide 'neuron-mode)
 
