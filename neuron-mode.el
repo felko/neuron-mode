@@ -7,7 +7,7 @@
 ;; Homepage: https://github.com/felko/neuron-mode
 ;; Keywords: outlines
 ;; Package-Version: 0.1
-;; Package-Requires: ((emacs "26.3") (f "0.20.0") (markdown-mode "2.3"))
+;; Package-Requires: ((emacs "26.3") (f "0.20.0") (s "1.12.0") (markdown-mode "2.3") (company "0.9.13"))
 ;;
 ;; This file is not part of GNU Emacs.
 
@@ -34,6 +34,9 @@
 ;;; Code:
 
 (require 'f)
+(require 's)
+(require 'cl-macs)
+(require 'cl-seq)
 (require 'json)
 (require 'markdown-mode)
 (require 'subr-x)
@@ -42,6 +45,7 @@
 (require 'url-parse)
 (require 'url-util)
 (require 'simple)
+(require 'company)
 
 (defgroup neuron nil
   "A major mode for editing Zettelkasten notes with neuron."
@@ -129,6 +133,11 @@ Overrides `neuron-title-overlay-face' which you may inherif from."
   "The port on which the rib server is started."
   :group 'neuron
   :type  'integerp)
+
+(defcustom neuron-max-completion-width 30
+  "Maximum width of the title in the completion candidates."
+  :group 'neuron
+  :type 'integerp)
 
 (defcustom neuron-max-trail-length 20
   "Maximum length of the trail.
@@ -592,7 +601,7 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
                 (query (neuron--parse-query-from-url-or-id link))
                 (conn (alist-get 'conn query))
                 (toggled (if (eq conn 'ordinary) 'folgezettel 'ordinary))
-                (new-query (progn (map-put! query 'conn toggled) query)))
+                (new-query (progn (setf (map-elt query 'conn nil) toggled) query)))
           (save-excursion
             (goto-char start)
             (delete-region start end)
@@ -1063,6 +1072,81 @@ link is a folgezettel of ordinary connection."
   (dolist (buffer (neuron-list-buffers))
     (with-current-buffer buffer (neuron--setup-overlays))))
 
+;; Completion
+
+(defun company-neuron--prefix ()
+  "Extract the completion prefix, triggered by entering an opening angle bracket."
+  (and (derived-mode-p 'neuron-mode)
+       (when (looking-back (rx "<" (group (+ (not (any ">"))))) nil)
+         (match-string 1))))
+
+(defun company-neuron--fuzzy-match-title (prefix candidate)
+  "Return whether PREFIX fuzzily matches the title of the CANDIDATE zettel."
+  (let ((full-title (alist-get 'zettelTitle (get-text-property 0 'zettel candidate))))
+    (cl-subsetp (string-to-list prefix)
+                (string-to-list full-title))))
+
+(defun company-neuron--propertize-completion-candidate (zettel)
+  "Propertize a zettel title to contain all information about ZETTEL.
+The resulting title is truncated and padded to fit the width given by
+`neuron-max-completion-width'."
+  (let* ((title (alist-get 'zettelTitle zettel))
+         (padded (s-pad-right neuron-max-completion-width " " title))
+         (truncated (s-truncate neuron-max-completion-width padded)))
+    (propertize truncated 'zettel zettel)))
+
+(defun company-neuron--all-candidates ()
+  "Propertize all cached zettels to provide completion candidates."
+  (mapcar #'company-neuron--propertize-completion-candidate neuron--zettel-cache))
+
+(defun company-neuron--candidates (prefix)
+  "Filter the candidates by fuzzily matching PREFIX against the candidates."
+  (cl-remove-if-not
+   (lambda (candidate) (company-neuron--fuzzy-match-title prefix candidate))
+   (company-neuron--all-candidates)))
+
+(defun company-neuron--completion-annotation (candidate)
+  "Annotate the completion CANDIDATE so that it includes the ID of the underlying zettel."
+  (let* ((zettel (get-text-property 0 'zettel candidate))
+         (annot (format "<%s>" (alist-get 'zettelID zettel))))
+    (concat " " (propertize annot 'face 'neuron-link-face))))
+
+(defun company-neuron--completion-meta (candidate)
+  "Display information about the underlying zettel of CANDIDATE.
+The resulting string contains the ID, the full title of the zettel, as well as
+the list of its tags."
+  (let ((zettel (get-text-property 0 'zettel candidate)))
+    (neuron--propertize-zettel zettel)))
+
+(defun company-neuron--post-completion-action (candidate)
+  "Delete the completed zettel title CANDIDATE and replace it with an actual neuron link."
+  (let ((begin (point))
+        (zettel (get-text-property 0 'zettel candidate)))
+    (when (re-search-backward (rx "<"))
+      (goto-char begin)
+      (delete-region begin (match-end 0))
+      (insert (concat (alist-get 'zettelID zettel) ">"))
+      (neuron--setup-overlays))))
+
+;;;###autoload
+(defun company-neuron (command &optional arg &rest ignored)
+  "Defines a company completion backend that completes zettels by title.
+COMMAND is the relevant command provided by company.
+ARG is the command argument, depending on which command was received.
+IGNORED is the rest of the arguments, not sure why it's there."
+  (interactive (list 'interactive))
+  (cl-case command
+    ((interactive) (company-begin-backend 'company-neuron-backend))
+    ((prefix) (company-neuron--prefix))
+    ((candidates) (company-neuron--candidates arg))
+    ((annotation) (company-neuron--completion-annotation arg))
+    ((meta) (company-neuron--completion-meta arg))
+    ((post-completion) (company-neuron--post-completion-action arg))
+    ((no-cache) 't)
+    ((ignore-case) t)))
+
+;; Mode declaration
+
 (defvar neuron-mode-map nil "Keymap for `neuron-mode'.")
 
 (progn
@@ -1104,6 +1188,8 @@ link is a folgezettel of ordinary connection."
     (neuron-mode)))
 
 (add-hook 'markdown-mode-hook #'neuron--auto-enable-when-in-zettelkasten t nil)
+
+(set-company-backend! 'neuron-mode 'company-neuron)
 
 (provide 'neuron-mode)
 
