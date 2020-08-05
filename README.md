@@ -62,9 +62,11 @@ to search the zettelkasten by content.
 You can create new zettels from Emacs, neuron-mode will take care of creating
 the file with a generated hash in the current active zettelkasten.
 
-Zettel links can be inserted using `neuron-insert-zettel-link` which will prompt
-you to select an existing zettel in the active zettelkasten. Zettels can also be
-linked and created on the fly by using `neuron-insert-new-zettel`.
+Links can be inserted using `neuron-insert-zettel-link` which will prompt you to
+select an existing zettel in the active zettelkasten. Zettels can also be linked
+and created on the fly by using `neuron-insert-new-zettel`. A third way to
+insert links, assuming that you use company, is by typing `<a few keywords`.
+This will show all the zettels whose titles match those keywords.
 
 To avoid typos in tags which might mess up the organization of your
 zettelkasten, use `neuron-add-tag`/`neuron-add-tags` which will allow you to
@@ -156,6 +158,9 @@ app rather than local files (respectively `neuron-rib-open-current-zettel` and
 - `neuron-rib-server-host` (default: `localhost`) \
 - `neuron-rib-server-port` (default: `8080`) \
   The host and port on which the rib server will run
+- `neuron-max-completion-width` (default: `30`) \
+   The maximum number of columns after which the company completion will
+  truncate the titles to fit the given width.
 
 ### Other variables
 
