@@ -53,7 +53,7 @@
   :link '(url-link "https://github.com/felko/neuron-mode")
   :group 'markdown)
 
-(defcustom neuron-default-zettelkasten-directory (expand-file-name "~/zettelkasten")
+(defcustom neuron-default-zettelkasten-directory "~/zettelkasten"
   "The location of the default Zettelkasten directory."
   :group 'neuron
   :type  'string
@@ -233,11 +233,12 @@ an actual directory, return nil."
 (defun neuron--update-current-zettelkasten (root)
   "Update `neuron--current-zettelkasten' with the new value ROOT.
 Refresh the zettel cache if the value has changed."
-  (let ((old-root neuron--current-zettelkasten))
-    (setq neuron--current-zettelkasten root)
+  (let ((old-root neuron--current-zettelkasten)
+        (new-root (expand-file-name root)))
+    (setq neuron--current-zettelkasten new-root)
     (when (or
            ;; When the current zettelkasten has changed since last time
-           (and neuron--current-zettelkasten (not (equal old-root root)))
+           (and neuron--current-zettelkasten (not (equal old-root new-root)))
            ;; First time that a neuron-mode function was called:
            (not neuron--current-zettelkasten))
       (neuron--rebuild-cache))
