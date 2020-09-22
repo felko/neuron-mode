@@ -275,7 +275,7 @@ existing directory, throw an user error."
    " "
    (mapconcat
     #'shell-quote-argument
-    (append (list "--zettelkasten-dir" neuron--current-zettelkasten cmd) args) " ")))
+    (append (list "-d" neuron--current-zettelkasten cmd) args) " ")))
 
 (defun neuron--make-query-uri-command (uri)
   "Construct a neuron query command that queries the zettelkasten from URI.
