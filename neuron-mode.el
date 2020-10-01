@@ -82,8 +82,6 @@ from WSL."
 (defcustom neuron-id-format 'hash
   "The ID format in which new zettels are created.
 'hash will make neuron generate a hexadecimal 8-digit UUID.
-'date will generate an ID that is baed on the current date,
-    as well as an integer to distinguish zettels that were created the same day,
 'prompt will ask for the user to specify the ID every time a zettel is created.
 This can be also set to a callable that takes the title as an argument
 and returns the desired ID."
@@ -91,6 +89,13 @@ and returns the desired ID."
   :type  '(choice
            (symbol   :tag "Let neuron handle the ID creation using CLI arguments")
            (function :tag "Function taking the title as argument and returning an ID")))
+
+(defcustom neuron-title-format "# %s"
+  "Format of title of a new zettel note.
+This format string will be run through `format' (with title
+as argument) to populate the new zettel"
+  :group 'neuron
+  :type 'string)
 
 (defcustom neuron-daily-note-id-format "%Y-%m-%d"
   "Format of daily note IDs.
@@ -347,33 +352,27 @@ Extract only the result itself, so the query type is lost."
 (defun neuron--is-valid-id (id)
   "Check whether the ID is a valid neuron zettel ID.
 Valid IDs should be strings of alphanumeric characters."
-  (string-match (rx bol (+ (or (char (?A . ?Z)) (char (?a . ?z)) digit (char "_-"))) eol) id))
+  (string-match (rx bol (+ (or (char (?A . ?Z)) (char (?a . ?z)) digit (char "_-") (char " "))) eol) id))
 
-(defun neuron--generate-id-arguments (id title)
-  "Build the command line arguments that specifies the ID of a new zettel.
-When ID is non-nil, use that ID, otherwise use the default strategy defined
-by `neuron-id-format'. If it is `'prompt' and that the entered ID is invalid,
-return nil."
-  (if id
-      (if (neuron--is-valid-id id)
-          (list "--id" id)
-        (user-error "Invalid zettel ID: %S" id))
-    (pcase neuron-id-format
-      ('hash '("--id-hash"))
-      ('date '("--id-date"))
-      ('prompt
-       (if-let* ((id (read-string "ID: "))
-                 ((neuron--is-valid-id id)))
-           (list "--id" id)
-         (user-error "Invalid zettel ID: %S" id)))
-      ((pred functionp)
-       (let ((id (funcall neuron-id-format title)))
-         (if (neuron--is-valid-id id)
-             (list "--id" id)
-           (user-error "Invalid zettel ID: %S" id)))))))
+(defun neuron--make-new-command (&optional id title)
+  (neuron-check-if-zettelkasten-exists)
+  (unless id
+    (setq id (pcase neuron-id-format
+               ('prompt
+                (if-let* ((id (read-string "ID: "))
+                          ((neuron--is-valid-id id)))
+                    id
+                  (user-error "Invalid zettel ID: %S" id)))
+               ((pred functionp)
+                (let ((id (funcall neuron-id-format title)))
+                  (if (neuron--is-valid-id id)
+                      id
+                    (user-error "Invalid zettel ID: %S" id)))))))
+  (let ((args (if id (list id) nil)))
+    (apply #'neuron--make-command "new" args)))
 
 (defun neuron-create-zettel-buffer (title &optional id no-default-tags)
-  "Create a new zettel in the current zettelkasten.
+    "Create a new zettel in the current zettelkasten.
 The new zettel will be generated with the given TITLE and ID if specified.
 When TITLE is nil, prompt the user.
 If NO-DEFAULT-TAGS is non-nil, don't add the tags specified the variable
@@ -381,15 +380,18 @@ If NO-DEFAULT-TAGS is non-nil, don't add the tags specified the variable
   (interactive (list (read-string "Title: ")))
   (neuron-check-if-zettelkasten-exists)
   (when (or (not id) (and id (not (neuron--get-cached-zettel-from-id id))))
-    (let* ((id-args (neuron--generate-id-arguments id title))
-           (args    (append id-args (list title)))
-           (path    (neuron--run-command (apply #'neuron--make-command "new" args)))
+    (let* ((cmd     (neuron--make-new-command id title))
+           (path    (neuron--run-command cmd))
            (buffer  (find-file-noselect path)))
-      (unless no-default-tags
-        (with-current-buffer buffer
+      (with-current-buffer buffer
+        (unless no-default-tags
           (dolist (tag neuron-default-tags)
-            (neuron-add-tag tag))
-          (save-buffer)))
+            (neuron-add-tag tag)))
+        (when title
+          (goto-char (point-max))
+          (newline)
+          (insert (format neuron-title-format title)))
+        (save-buffer))
       (neuron--rebuild-cache)
       (message "Created %s" (f-filename path))
       buffer)))
@@ -1183,6 +1185,7 @@ IGNORED is the rest of the arguments, not sure why it's there."
   (define-key neuron-mode-map (kbd "C-c C-s")   #'neuron-insert-static-link)
   (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
   (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point)
+  (define-key neuron-mode-map (kbd "C-c C-,")   #'neuron-edit-uplink)
 
   (setq neuron-mode-link-map (make-sparse-keymap))
   (define-key neuron-mode-link-map [mouse-1]    #'neuron-follow-thing-at-point)
