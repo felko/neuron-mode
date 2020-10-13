@@ -98,7 +98,7 @@ app rather than local files (respectively `neuron-rib-open-current-zettel` and
 | :----------------------------------------- | :-------------- | :--------------------------------------------------------------------------------- |
 | `neuron-new-zettel`                        | `C-c C-z`       | Create a new zettel and open it for edition                                        |
 | `neuron-edit-zettel`                       | `C-c C-e`       | Select an existing zettel and open it for editing                                  |
-| `neuron-edit-uplink`                       | N/A             | Select and edit a zettel that links to the current one                             |
+| `neuron-edit-uplink`                       | `C-c C-,`       | Select and edit a zettel that links to the current one                             |
 | `neuron-add-tag`                           | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block                |
 | `neuron-add-tags`                          | `C-c C-S-t`     | Same as `neuron-add-tag` but adds multiple tags simultaneously                     |
 | `neuron-query-tag`                         | N/A             | Select a tag and then a zettel with that tag                                       |
@@ -140,12 +140,22 @@ app rather than local files (respectively `neuron-rib-open-current-zettel` and
   Controls the default ID format used when creating new notes. \
   It can be set to:
   - `'hash`: generates an unique 32 bit UUID (default behavior of neuron)
-  - `'date`: generates an ID based on the date of creation
   - `'prompt`: asks for the ID when creating a new zettel
   - a function: generate a custom ID based on the zettel title. (not recommended
     for actual knowledge based zettelkastens but might be useful for e.g.
     slugging the titles for documentations) The function has to generate a valid
-    neuron ID.
+    neuron ID. \
+    Example: If you want to have slug-converted title as ID, you can put the following in .emacs \
+    ```emacs lisp
+    
+    (defun sluggify (title)
+     (s-join "-" (split-string (s-downcase title))))
+     
+    (setq neuron-id-format 'sluggify)
+    ```
+- `neuron-title-format` (default: `# %s`) \
+  Format string for title of a new zettel. This format string will be run through 
+  `format` (with title as argument) to populate the new zettel.
 - `neuron-default-tags` (default: `nil`) \
   A list of tags to add to zettels when they are created. This does not affect daily
   notes. \
