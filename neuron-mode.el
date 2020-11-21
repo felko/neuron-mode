@@ -46,6 +46,7 @@
 (require 'url-util)
 (require 'simple)
 (require 'company)
+(require 'xref)
 
 (defgroup neuron nil
   "A major mode for editing Zettelkasten notes with neuron."
@@ -256,6 +257,10 @@ Refresh the zettel cache if the value has changed."
       (neuron--rebuild-cache))
     neuron--current-zettelkasten))
 
+(defun neuron--pop-to-buffer-same-window (buffer)
+  (xref-push-marker-stack)
+  (pop-to-buffer-same-window buffer))
+
 ;;;###autoload
 (defun neuron-zettelkasten (&optional pwd)
   "The location of the current Zettelkasten directory.
@@ -431,7 +436,7 @@ The new zettel will be generated with the given TITLE and ID if specified.
 When TITLE is nil, prompt the user."
   (interactive)
   (if-let (buffer (call-interactively #'neuron-create-zettel-buffer t (vector title id)))
-      (pop-to-buffer-same-window buffer)
+      (neuron--pop-to-buffer-same-window buffer)
     (user-error "Unable to create zettel %s" id)))
 
 ;;;###autoload
@@ -445,7 +450,7 @@ When TITLE is nil, prompt the user."
          (path   (neuron--get-zettel-path (neuron--query-zettel-from-id zid)))
          (buffer (or new (find-file-noselect path))))
     (and
-     (pop-to-buffer-same-window buffer)
+     (neuron--pop-to-buffer-same-window buffer)
      (with-current-buffer buffer
        (when new
          (dolist (tag neuron-daily-note-tags)
@@ -581,7 +586,7 @@ the inserted link will either be of the form <ID> or
       (neuron--insert-zettel-link-from-id id)
       (save-buffer)
       (neuron--rebuild-cache)
-      (pop-to-buffer-same-window buffer)
+      (neuron--pop-to-buffer-same-window buffer)
       (message "Created %s" (buffer-name buffer)))))
 
 (defun neuron-create-zettel-from-selected-title ()
@@ -760,7 +765,7 @@ When called interactively this command prompts for a tag."
 (defun neuron--edit-zettel-from-path (path)
   "Open a neuron zettel from PATH."
   (let ((buffer (find-file-noselect path)))
-    (pop-to-buffer-same-window buffer)))
+    (neuron--pop-to-buffer-same-window buffer)))
 
 (defun neuron--query-zettel-from-id (id)
   "Query a single zettel from the active zettelkasten from its ID.
