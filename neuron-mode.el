@@ -66,13 +66,6 @@
   :type  'boolean
   :safe  'booleanp)
 
-;; TODO deprecate, replace with neuron-use-wiki-links
-(defcustom neuron-use-short-links t
-  "Whether to use <ID> or [ID](z:/) syntax when inserting zettel links."
-  :group 'neuron
-  :type  'boolean
-  :safe  'booleanp)
-
 (defcustom neuron-executable "neuron"
   "Path to the neuron binary or wrapper around the neuron command.
 This might be useful e.g. for Windows users that need to run neuron
@@ -458,7 +451,7 @@ When TITLE is nil, prompt the user."
 
 (defun neuron--style-zettel-id (zid)
   "Style a ZID as shown in the completion prompt."
-  (propertize (format "<%s>" zid) 'face 'neuron-link-face))
+  (propertize (format "[[[%s]]]" zid) 'face 'neuron-link-face))
 
 (defun neuron--style-tags (tags)
   "Style TAGS as shown in the completion prompt when selecting a zettel."
@@ -560,15 +553,10 @@ otherwise return nil."
     (insert (format "[](%s)" (f-relative path neuron--current-zettelkasten)))))
 
 (defun neuron--insert-zettel-link-from-id (id)
-  "Insert a zettel link.
-Depending on the value of `neuron-use-short-links',
-the inserted link will either be of the form <ID> or
-[ID](z:/)."
-  (if neuron-use-short-links
-      (progn
-        (insert (format "<%s>" id))
-        (neuron--setup-overlays))
-    (format "[%s](z:/)" id)))
+  "Insert a zettel link."
+  (progn
+    (insert (format "[[[%s]]]" id))
+    (neuron--setup-overlays)))
 
 (defun neuron-insert-zettel-link ()
   "Insert a markdown hypertext link to another zettel."
@@ -639,9 +627,9 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
       (if-let* ((link (match-string 1))
                 (start (match-beginning 0))
                 (end (match-end 0))
-                (query (neuron--parse-query-from-url-or-id link))
-                (conn (alist-get 'conn query))
-                (toggled (if (eq conn 'ordinary) 'folgezettel 'ordinary))
+                (conn (if (null (match-string 2)) 'ordinary 'folgezettel))
+                (query (neuron--parse-query-from-url-or-id link (eq conn 'folgezettel)))
+                (toggled (if (eq conn 'folgezettel) 'ordinary 'folgezettel))
                 (new-query (progn (setf (map-elt query 'conn nil) toggled) query)))
           (save-excursion
             (goto-char start)
@@ -675,7 +663,7 @@ ELEM is a map containing the name of the tag and the number of associated zettel
   (let* ((tag   (alist-get 'tag elem))
          (count (alist-get 'count elem))
          (display-count (propertize (format "(%d)" count) 'face 'shadow)))
-    (format "%s %s" tag display-count))) ;; 'tag tag 'count count))
+    (format "%s %s" tag display-count)))
 
 (defun neuron--select-tag-from-query (uri &optional prompt require-match)
   "Prompt for a tag that is matched by the zquery URI.
@@ -829,9 +817,10 @@ The path is relative to the neuron output directory."
   (neuron--open-zettel-from-id (funcall-interactively #'neuron--get-zettel-id)))
 
 (defconst neuron-link-regex
-  (concat "<\\(z:" thing-at-point-url-path-regexp "\\|[A-Za-z0-9-_]+\\(?:\?[^][\t\n\\ {}]*\\)?\\)>")
-  "Regex matching zettel links like <URL> or <ID>.
+  (concat "\\[\\{2,3\\}\\(z:" thing-at-point-url-path-regexp "\\|[A-Za-z0-9-_ ]+\\(?:\?[^][\t\n\\ {}]*\\)?\\)]]\\(]\\)*")
+  "Regex matching zettel links like [[[URL/ID]]] or [[URL/ID]] .
 Group 1 is the matched ID or URL.")
+
 
 (defun neuron--extract-id-from-partial-url (url)
   "Extract the ID from a single zettel URL."
@@ -852,7 +841,7 @@ QUERY is a query object as described in `neuron--parse-query-from-url-or-id'."
       ('zettels (neuron--edit-zettel-from-query url))
       ('tags    (neuron-query-tags (neuron--select-tag-from-query url "Search by tag: "))))))
 
-(defun neuron--parse-query-from-url-or-id (url-or-id)
+(defun neuron--parse-query-from-url-or-id (url-or-id folgezettel?)
   "Parse a neuron URL or a raw zettel ID as an object representing the query.
 URL-OR-ID is a string that is meant to be parsed inside neuron links inside
 angle brackets. The query is returned as a map having at least a `'type' field.
@@ -866,7 +855,7 @@ ID, the map features an `'url' field."
          (parts  (s-split "/" path))
          (type   (url-type struct))
          (args   (when query (url-parse-query-string query)))
-         (conn   (if (assoc "cf" args) 'ordinary 'folgezettel))
+         (conn   (if folgezettel? 'folgezettel 'ordinary))
          (common `((conn . ,conn)
                    (url . ,url-or-id)
                    (args . ,(assoc-delete-all "cf" args)))))
@@ -886,13 +875,15 @@ ID, the map features an `'url' field."
 QUERY is an alist containing at least the query type and the URL."
   (let* ((args (alist-get 'args query))
          (conn (alist-get 'conn query))
-         (url-args (if (eq conn 'ordinary) (cons '("cf" "") args) args))
+         (link-opening (if (eq conn 'ordinary) "[[" "[[["))
+         (link-closing (if (eq conn 'ordinary) "]]" "]]]"))
+         (url-args args)
          (url-query (url-build-query-string url-args))
          (url-suffix (if url-args (format "?%s" url-query) "")))
     (pcase (alist-get 'type query)
-      ('zettel (format "<%s%s>" (alist-get 'id query) url-suffix))
-      ('zettels (format "<z:zettels%s>" url-suffix))
-      ('tags (format "<z:tags%s>" url-suffix)))))
+      ('zettel (format "%s%s%s%s" link-opening (alist-get 'id query) url-suffix link-closing))
+      ('zettels (format "%sz:zettels%s%s" link-opening url-suffix link-closing))
+      ('tags (format "%sz:tags%s%s" link-opening url-suffix link-closing)))))
 
 ;;;###autoload
 (defun neuron-follow-thing-at-point ()
@@ -905,7 +896,7 @@ QUERY is an alist containing at least the query type and the URL."
        ;; limit to current line
        (max (- (point) (line-beginning-position))
             (- (line-end-position) (point))))
-      (if-let ((query (neuron--parse-query-from-url-or-id (match-string 1))))
+      (if-let ((query (neuron--parse-query-from-url-or-id (match-string 1) 't)))
           (neuron--follow-query query)
         (user-error "Invalid query"))
     ;; Old style links
@@ -1080,19 +1071,20 @@ folgezettel or an ordinary connection."
             (overlay-put ov 'after-string (format " %s" (propertize title 'face title-face))))
         (overlay-put ov 'after-string nil)
         (overlay-put ov 'display (format "%s%s" (propertize title 'face title-face) title-suffix)))
-    (overlay-put ov 'after-string (format " %s" (propertize "Unknown ID" 'face 'neuron-invalid-zettel-id-face)))
-    (overlay-put ov 'face 'neuron-invalid-link-face)))
+    ))
 
 (defun neuron--overlay-update (ov after &rest _)
   "Delete the title overlay OV on modification.
 When AFTER is non-nil, this hook is being called after the update occurs."
   (let ((link (buffer-substring (overlay-start ov) (overlay-end ov))))
-    (when after
-      (if (string-match neuron-link-regex link)
-          (if-let ((query (neuron--parse-query-from-url-or-id (match-string 1 link))))
-              (neuron--setup-overlay-from-query ov query)
-            (overlay-put ov 'face 'neuron-invalid-link-face))
-        (delete-overlay ov)))))
+      (when after
+        (if (string-match neuron-link-regex link)
+            (let* ((link (match-string 1 link))
+                   (folgezettel? (not (null (match-string 2))))
+                   (query (neuron--parse-query-from-url-or-id link folgezettel?)))
+              (if query (neuron--setup-overlay-from-query ov query)
+                (overlay-put ov 'face 'neuron-invalid-link-face)))
+          (delete-overlay ov)))))
 
 (defun neuron--setup-overlay-from-query (ov query)
   "Setup a overlay OV from any zettel link QUERY."
@@ -1110,9 +1102,12 @@ When AFTER is non-nil, this hook is being called after the update occurs."
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward neuron-link-regex nil t)
-      (let ((ov (make-overlay (match-beginning 0) (match-end 0) nil t nil))
-            (query (neuron--parse-query-from-url-or-id (match-string 1))))
-        (neuron--setup-overlay-from-query ov query)))))
+      (let* ((ov (make-overlay (match-beginning 0) (match-end 0) nil t nil))
+             (id-string (match-string 1))
+             (closing-bracket (match-string 2))
+             (folgezettel? (not (null closing-bracket)))
+             (query (neuron--parse-query-from-url-or-id id-string folgezettel?)))
+          (neuron--setup-overlay-from-query ov query)))))
 
 ;;;###autoload
 (defun neuron-toggle-id-visiblity ()
@@ -1217,7 +1212,7 @@ IGNORED is the rest of the arguments, not sure why it's there."
   (define-key neuron-mode-map (kbd "C-c C-S-L") #'neuron-insert-new-zettel)
   (define-key neuron-mode-map (kbd "C-c C-s")   #'neuron-insert-static-link)
   (define-key neuron-mode-map (kbd "C-c C-r")   #'neuron-open-current-zettel)
-  (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-follow-thing-at-point)
+  (define-key neuron-mode-map (kbd "C-c C-o")   #'neuron-open-daily-notes)
   (define-key neuron-mode-map (kbd "C-c C-,")   #'neuron-edit-uplink)
 
   (setq neuron-mode-link-map (make-sparse-keymap))
