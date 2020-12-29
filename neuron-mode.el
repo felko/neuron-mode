@@ -297,7 +297,7 @@ URI is expected to have a zquery:/ scheme."
 The command is executed as a synchronous process and the standard output is
 returned as a string."
   (let* ((result    (with-temp-buffer
-                      (list (call-process-shell-command cmd nil t) (buffer-string))))
+                      (list (call-process-shell-command cmd nil '(t nil)) (buffer-string))))
          (exit-code (nth 0 result))
          (output    (nth 1 result)))
     (if (equal exit-code 0)
