@@ -101,7 +101,7 @@ app rather than local files (respectively `neuron-rib-open-current-zettel` and
 | `neuron-edit-uplink`                       | `C-c C-,`       | Select and edit a zettel that links to the current one                             |
 | `neuron-add-tag`                           | `C-c C-t`       | Select and insert a tag in the current zettel's YAML metadata block                |
 | `neuron-add-tags`                          | `C-c C-S-t`     | Same as `neuron-add-tag` but adds multiple tags simultaneously                     |
-| `neuron-query-tag`                         | N/A             | Select a tag and then a zettel with that tag                                       |
+| `neuron-query-tags`                        | N/A             | Select a tag and then a zettel with that tag                                       |
 | `neuron-replace-tag`                       | N/A             | Replace a tag by another across the entire zettelkasten                            |
 | `neuron-open-current-zettel`               | `C-c C-r`       | Open the current zettel's generated HTML file in the browser                       |
 | `neuron-insert-zettel-link`                | `C-c C-l`       | Search a zettel by content and insert the link at point                            |
