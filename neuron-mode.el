@@ -280,17 +280,21 @@ existing directory, throw an user error."
 
 (defun neuron--make-command (cmd &rest args)
   "Construct a neuron command CMD with argument ARGS."
-  (concat
-   neuron-executable
-   " "
-   (mapconcat
-    #'shell-quote-argument
-    (append (list "-d" neuron--current-zettelkasten cmd) args) " ")))
+  (let ((neuron-args
+         (if (stringp args)
+             (append (list "-d" neuron--current-zettelkasten cmd) args)
+           (seq-concatenate 'list (list "-d" neuron--current-zettelkasten cmd) args))))
+    (concat
+     neuron-executable
+     " "
+     (mapconcat
+      #'shell-quote-argument
+      neuron-args " "))))
 
-(defun neuron--make-query-uri-command (uri)
-  "Construct a neuron query command that queries the zettelkasten from URI.
-URI is expected to have a zquery:/ scheme."
-  (neuron--make-command "query" "--uri" uri))
+(defun neuron--make-query-command (args)
+  "Construct a neuron query command with the given arguments.
+ARGS describes the argument to pass to `neuron query'."
+  (neuron--make-command "query" args))
 
 (defun neuron--run-command (cmd)
   "Run the CMD neuron command with arguments ARGS in the current zettekasten.
@@ -308,11 +312,11 @@ returned as a string."
 (defun neuron--read-query-result (output)
   "Parse the OUTPUT of a query command in JSON.
 Extract only the result itself, so the query type is lost."
-  (map-elt (json-read-from-string output) 'result))
+  (json-read-from-string output))
 
-(defun neuron--query-url-command (uri)
-  "Run a neuron query from a zquery URI."
-  (neuron--read-query-result (neuron--run-command (neuron--make-query-uri-command uri))))
+(defun neuron--query-command (args)
+  "Run a neuron query with given arguments."
+  (neuron--read-query-result (neuron--run-command (neuron--make-query-command args))))
 
 (defun neuron--run-rib-process (&rest args)
   "Run an asynchronous neuron process spawned by the rib command with arguments ARGS."
@@ -327,8 +331,8 @@ Extract only the result itself, so the query type is lost."
 
 (defun neuron--rebuild-cache ()
   "Rebuild the zettel cache with the current zettelkasten."
-  (let ((zettels (neuron--query-url-command "z:zettels"))
-        (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'zettelID)) zettel))))
+  (let ((zettels (neuron--query-command "--zettels"))
+        (assoc-id (lambda (zettel) (cons (intern (map-elt zettel 'ID)) zettel))))
     (setq neuron--zettel-cache (mapcar assoc-id zettels))))
 
 (defun neuron-list-buffers ()
@@ -381,7 +385,7 @@ Valid IDs should be strings of alphanumeric characters."
     (apply #'neuron--make-command "new" args)))
 
 (defun neuron-create-zettel-buffer (title &optional id no-default-tags)
-    "Create a new zettel in the current zettelkasten.
+  "Create a new zettel in the current zettelkasten.
 The new zettel will be generated with the given TITLE and ID if specified.
 When TITLE is nil, prompt the user.
 If NO-DEFAULT-TAGS is non-nil, don't add the tags specified the variable
@@ -420,7 +424,7 @@ If NO-DEFAULT-TAGS is non-nil, don't add the tags specified the variable
 (defun neuron--get-zettel-title (id)
   "Get the title of the zettel with an id of ID.
 Returns nil if no such zettle is found."
-  (alist-get 'zettelTitle (neuron--get-cached-zettel-from-id id) nil))
+  (alist-get 'Title (neuron--get-cached-zettel-from-id id) nil))
 
 ;;;###autoload
 (defun neuron-new-zettel (&optional title id)
@@ -461,9 +465,9 @@ When TITLE is nil, prompt the user."
 
 (defun neuron--propertize-zettel (zettel)
   "Format ZETTEL as shown in the selection prompt."
-  (let ((id (alist-get 'zettelID zettel))
-        (title (alist-get 'zettelTitle zettel))
-        (tags (alist-get 'zettelTags zettel)))
+  (let ((id (alist-get 'ID zettel))
+        (title (alist-get 'Title zettel))
+        (tags (neuron--get-zettel-tags zettel)))
     (format "%s %s %s" (neuron--style-zettel-id id) title (neuron--style-tags tags))))
 
 (defun neuron--select-zettel-from-list (zettels &optional prompt require-match)
@@ -488,9 +492,10 @@ non-nil require the input to match an existing zettel."
 PROMPT is the prompt passed to `completing-read'."
   (neuron--select-zettel-from-list (map-values neuron--zettel-cache) prompt t))
 
-(defun neuron--select-zettel-from-query (uri)
-  "Select a zettel from the match of URI."
-  (neuron--select-zettel-from-list (neuron--query-url-command uri) nil t))
+(defun neuron--select-zettel-from-query (args)
+  "Select a zettel from a query.
+ARGS is the arguments to pass to the neuron query command."
+  (neuron--select-zettel-from-list (neuron--query-command args) nil t))
 
 (defun neuron-select-zettel (&optional prompt)
   "Find a zettel in the current zettelkasten.
@@ -500,7 +505,23 @@ PROMPT is the prompt passed to `completing-read'."
 
 (defun neuron--get-zettel-path (zettel)
   "Get the absolute path of ZETTEL."
-  (f-join "/" neuron--current-zettelkasten (alist-get 'zettelPath zettel)))
+  (f-join "/" neuron--current-zettelkasten (alist-get 'Path zettel)))
+
+(defun neuron--get-plugin-data (plugin-data-list plugin i)
+  "Extract from all plugin data the part that is relevant for a given plugin.
+PLUGIN-DATA-LIST is in the JSON representation of the plugin data and PLUGIN
+is the plugin name."
+  (if (eq i (length plugin-data-list))
+      nil
+    (let* ((data (aref plugin-data-list i))
+           (name (aref (aref data 0) 0)))
+      (if (equal name plugin)
+          (aref data 1)
+        (neuron--get-plugin-data plugin-data-list plugin (+ i 1))))))
+
+(defun neuron--get-zettel-tags (zettel)
+  "Get the tags of ZETTEL."
+  (alist-get 'Tagged (neuron--get-plugin-data (alist-get 'PluginData zettel) "Tags" 0)))
 
 ;;;###autoload
 (defun neuron-edit-zettel (zettel)
@@ -562,7 +583,7 @@ otherwise return nil."
   "Insert a markdown hypertext link to another zettel."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (neuron--insert-zettel-link-from-id (map-elt (neuron-select-zettel "Link zettel: ") 'zettelID)))
+  (neuron--insert-zettel-link-from-id (map-elt (neuron-select-zettel "Link zettel: ") 'ID)))
 
 (defun neuron-insert-new-zettel ()
   "Create a new zettel."
@@ -602,7 +623,7 @@ NO-PROMPT is non-nil do not prompt when creating a new zettel."
           (neuron--select-zettel-from-list
            (map-values neuron--zettel-cache)
            "Link zettel: "))
-         (id (and (listp selection) (alist-get 'zettelID selection))))
+         (id (and (listp selection) (alist-get 'ID selection))))
     (pcase selection
       ;; Existing zettel:
       ((guard id)
@@ -665,22 +686,16 @@ ELEM is a map containing the name of the tag and the number of associated zettel
          (display-count (propertize (format "(%d)" count) 'face 'shadow)))
     (format "%s %s" tag display-count)))
 
-(defun neuron--select-tag-from-query (uri &optional prompt require-match)
-  "Prompt for a tag that is matched by the zquery URI.
+(defun neuron--select-tag-from-query (args &optional prompt require-match)
+  "Prompt for a tag that is matched by the query.
+ARGS is the arguments to pass to the neuron query command.
 PROMPT is the prompt that appears when asked to select the tag.
 If REQUIRE-MATCH is non-nil require user input to match an existing tag."
-  (let* ((tags (neuron--flatten-tag-tree (neuron--query-url-command uri)))
-         (tag-display-regex (eval `(rx (group (regexp ,neuron-tag-regex)) " " (char "(") (group (+ digit)) (char ")"))))
-         (filter (lambda (tag-display)
-                   (when (string-match tag-display-regex tag-display)
-                     (not (zerop (string-to-number (match-string 2 tag-display)))))))
-         (selection
-          (completing-read (or prompt "Select tag: ")
-                           (mapcar #'neuron--propertize-tag tags)
-                           filter
-                           require-match)))
-    (string-match (eval `(rx bos (regexp ,neuron-tag-regex))) selection)
-    (match-string 0 selection)))
+  (let ((tags (append (neuron--query-command args) nil)))
+    (completing-read (or prompt "Select tag: ")
+                     tags
+                     nil
+                     require-match)))
 
 (defun neuron--get-metadata-block-bounds (&optional create-if-missing)
   "Return the bounds of the metadata block.
@@ -719,12 +734,12 @@ PROMPT is the prompt passed to `completing-read'.
 If REQUIRE-MATCH is non-nil require user input to match an existing
 tag."
   (neuron-check-if-zettelkasten-exists)
-  (neuron--select-tag-from-query "z:tags" prompt require-match))
+  (neuron--select-tag-from-query "--tags" prompt require-match))
 
 (defun neuron-select-multiple-tags (&optional prompt)
   "Select multiple tags as a comma-separated list.
 PROMPT is the prompt passed to `completing-read'."
-  (let* ((query-result (neuron--flatten-tag-tree (neuron--query-url-command "z:tags")))
+  (let* ((query-result (neuron--query-command "--tags"))
          (tags (mapcar (lambda (el) (alist-get 'tag el)) query-result)))
     (completing-read-multiple (or prompt "Select tags: ") tags)))
 
@@ -747,8 +762,12 @@ When called interactively this command prompts for a tag."
 (defun neuron-query-tags (&rest tags)
   "Select and edit a zettel from those that are tagged by TAGS."
   (interactive (list (neuron-select-tag "Search by tag: " t)))
-  (let ((query (mapconcat (lambda (tag) (format "tag=%s" tag)) tags "&")))
-    (neuron--edit-zettel-from-query (format "z:zettels?%s" query))))
+  (neuron-edit-zettel
+   (neuron--select-zettel-from-list
+    (seq-mapcat
+     (lambda (tag) (neuron--query-command (format "--tag=%s" tag)))
+     tags
+     'list))))
 
 (defun neuron--edit-zettel-from-path (path)
   "Open a neuron zettel from PATH."
@@ -777,9 +796,10 @@ the cache when the ID is not found."
       (neuron-edit-zettel zettel)
     (user-error "Zettel %s does not exist" id)))
 
-(defun neuron--edit-zettel-from-query (uri)
-  "Select and edit a zettel from a neuron query URI."
-  (neuron-edit-zettel (neuron--select-zettel-from-query uri)))
+(defun neuron--edit-zettel-from-query (args)
+  "Select and edit a zettel from a query.
+ARGS is the arguments to pass to the neuron query command."
+  (neuron-edit-zettel (neuron--select-zettel-from-query args)))
 
 (defun neuron--get-zettel-id (&optional buffer)
   "Extract the zettel ID of BUFFER."
@@ -802,7 +822,7 @@ The path is relative to the neuron output directory."
   "Select a zettel and open the associated HTML file."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
-  (neuron--open-zettel-from-id (map-elt (neuron-select-zettel "Open zettel: ") 'zettelID)))
+  (neuron--open-zettel-from-id (map-elt (neuron-select-zettel "Open zettel: ") 'ID)))
 
 (defun neuron-open-index ()
   "Open the index.html file."
@@ -846,7 +866,7 @@ QUERY is a query object as described in `neuron--parse-query-from-url-or-id'."
 URL-OR-ID is a string that is meant to be parsed inside neuron links inside
 angle brackets. The query is returned as a map having at least a `'type' field.
 When URL-OR-ID is a raw ID, or that it is an URL having startin with z:zettel,
-the map also has an `'zettelID' field. Whenever URL-OR-ID is an URL and not an
+the map also has an `ID' field. Whenever URL-OR-ID is an URL and not an
 ID, the map features an `'url' field."
   (let* ((struct (url-generic-parse-url url-or-id))
          (path-and-query (url-path-and-query struct))
@@ -968,7 +988,7 @@ QUERY is an alist containing at least the query type and the URL."
   (interactive)
   (neuron-check-if-zettelkasten-exists)
   (let ((zettel (neuron-select-zettel)))
-    (neuron-rib-open-page (concat (map-elt zettel 'zettelID) ".html"))))
+    (neuron-rib-open-page (concat (map-elt zettel 'ID) ".html"))))
 
 (defun neuron-rib-kill ()
   "Stop the web application."
@@ -1053,7 +1073,7 @@ It picks the faces from the `neuron-tag-specific-title-faces' variable.
 When no tag has a particular face, return the default `neuron-title-overlay-face'."
   (or (catch 'found-face
         (pcase-dolist (`(,tag . ,face) neuron-tag-specific-title-faces)
-          (when (seq-contains tags tag)
+          (when (seq-contains-p tags tag)
             (throw 'found-face (car face)))))
       'neuron-title-overlay-face))
 
@@ -1062,8 +1082,8 @@ When no tag has a particular face, return the default `neuron-title-overlay-face
 OV is the overay to setup or update and CONN describes whether the link is a
 folgezettel or an ordinary connection."
   (if-let* ((zettel (ignore-errors (neuron--get-cached-zettel-from-id id)))
-            (title (alist-get 'zettelTitle zettel))
-            (title-face (neuron--get-title-face-for-tags (alist-get 'zettelTags zettel)))
+            (title (alist-get 'Title zettel))
+            (title-face (neuron--get-title-face-for-tags (neuron--get-zettel-tags zettel)))
             (title-suffix (if (eq conn 'folgezettel) " ᛦ" "")))
       (if neuron-show-ids
           (progn
@@ -1077,14 +1097,14 @@ folgezettel or an ordinary connection."
   "Delete the title overlay OV on modification.
 When AFTER is non-nil, this hook is being called after the update occurs."
   (let ((link (buffer-substring (overlay-start ov) (overlay-end ov))))
-      (when after
-        (if (string-match neuron-link-regex link)
-            (let* ((link (match-string 1 link))
-                   (folgezettel? (not (null (match-string 2))))
-                   (query (neuron--parse-query-from-url-or-id link folgezettel?)))
-              (if query (neuron--setup-overlay-from-query ov query)
-                (overlay-put ov 'face 'neuron-invalid-link-face)))
-          (delete-overlay ov)))))
+    (when after
+      (if (string-match neuron-link-regex link)
+          (let* ((link (match-string 1 link))
+                 (folgezettel? (not (null (match-string 2))))
+                 (query (neuron--parse-query-from-url-or-id link folgezettel?)))
+            (if query (neuron--setup-overlay-from-query ov query)
+              (overlay-put ov 'face 'neuron-invalid-link-face)))
+        (delete-overlay ov)))))
 
 (defun neuron--setup-overlay-from-query (ov query)
   "Setup a overlay OV from any zettel link QUERY."
@@ -1107,7 +1127,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
              (closing-bracket (match-string 2))
              (folgezettel? (not (null closing-bracket)))
              (query (neuron--parse-query-from-url-or-id id-string folgezettel?)))
-          (neuron--setup-overlay-from-query ov query)))))
+        (neuron--setup-overlay-from-query ov query)))))
 
 ;;;###autoload
 (defun neuron-toggle-id-visiblity ()
@@ -1129,7 +1149,7 @@ link is a folgezettel of ordinary connection."
 
 (defun company-neuron--fuzzy-match-title (prefix candidate)
   "Return whether PREFIX fuzzily matches the title of the CANDIDATE zettel."
-  (let ((full-title (alist-get 'zettelTitle (get-text-property 0 'zettel candidate))))
+  (let ((full-title (alist-get 'Title (get-text-property 0 'zettel candidate))))
     (cl-subsetp (string-to-list prefix)
                 (string-to-list full-title))))
 
@@ -1137,7 +1157,7 @@ link is a folgezettel of ordinary connection."
   "Propertize a zettel title to contain all information about ZETTEL.
 The resulting title is truncated and padded to fit the width given by
 `neuron-max-completion-width'."
-  (let* ((title (alist-get 'zettelTitle zettel))
+  (let* ((title (alist-get 'Title zettel))
          (padded (s-pad-right neuron-max-completion-width " " title))
          (truncated (s-truncate neuron-max-completion-width padded)))
     (propertize truncated 'zettel zettel)))
@@ -1155,7 +1175,7 @@ The resulting title is truncated and padded to fit the width given by
 (defun company-neuron--completion-annotation (candidate)
   "Annotate the completion CANDIDATE so that it includes the ID of the underlying zettel."
   (let* ((zettel (get-text-property 0 'zettel candidate))
-         (annot (format "<%s>" (alist-get 'zettelID zettel))))
+         (annot (format "<%s>" (alist-get 'ID zettel))))
     (concat " " (propertize annot 'face 'neuron-link-face))))
 
 (defun company-neuron--completion-meta (candidate)
@@ -1172,7 +1192,7 @@ the list of its tags."
     (when (re-search-backward (rx "<"))
       (goto-char begin)
       (delete-region begin (match-end 0))
-      (insert (concat (alist-get 'zettelID zettel) ">"))
+      (insert (concat (alist-get 'ID zettel) ">"))
       (neuron--setup-overlays))))
 
 ;;;###autoload
