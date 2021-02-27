@@ -1130,7 +1130,7 @@ When AFTER is non-nil, this hook is being called after the update occurs."
         (neuron--setup-overlay-from-query ov query)))))
 
 ;;;###autoload
-(defun neuron-toggle-id-visiblity ()
+(defun neuron-toggle-id-visibility ()
   "Toggle the visibility of IDs in simple links.
 This can be useful to debug when searching for ID, explicitly seeing whether the
 link is a folgezettel of ordinary connection."
