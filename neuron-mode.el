@@ -177,7 +177,7 @@ If non-nil, the zettel title will be included in the buffer name."
 (defface neuron-title-overlay-face
   '((((class color) (min-colors 88) (background dark)) :foreground "MistyRose2" :underline "MistyRose2")
     (((class color) (min-colors 88) (background light)) :foreground "MistyRose4" :underline "MistyRose4")
-    (((class color) :foreground "grey" :underline "grey"))
+    (((class color)) :foreground "grey" :underline "grey")
     (t :inherit italic))
   "Face for title overlays displayed with folgezettel links."
   :group 'neuron-faces)
